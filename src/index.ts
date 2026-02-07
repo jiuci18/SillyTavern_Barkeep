@@ -15,7 +15,7 @@ interface Plugin {
 }
 
 const chalk = new Chalk();
-const MODULE_NAME = '[SillyTavern-Example-Plugin]';
+const MODULE_NAME = '[Sillytavern_Barkeeper]';
 
 /**
  * Initialize the plugin.
@@ -46,9 +46,9 @@ export async function exit(): Promise<void> {
 }
 
 export const info: PluginInfo = {
-    id: 'example',
-    name: 'Example Plugin',
-    description: 'A simple example plugin for SillyTavern server.',
+    id: 'plugin_Bk',
+    name: 'sillytavern api',
+    description: 'A api servers for SillyTavern server.',
 };
 
 const plugin: Plugin = {
