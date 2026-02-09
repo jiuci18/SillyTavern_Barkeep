@@ -1,6 +1,7 @@
 import bodyParser from 'body-parser';
 import { Router } from 'express';
 import { Chalk } from 'chalk';
+import { loadConfig } from './config/config';
 
 interface PluginInfo {
     id: string;
@@ -22,6 +23,7 @@ const MODULE_NAME = '[Sillytavern_Barkeeper]';
  * @param router Express Router
  */
 export async function init(router: Router): Promise<void> {
+    await loadConfig();
     const jsonParser = bodyParser.json();
     // Used to check if the server plugin is running
     router.post('/probe', (_req, res) => {
@@ -46,7 +48,7 @@ export async function exit(): Promise<void> {
 }
 
 export const info: PluginInfo = {
-    id: 'plugin_Bk',
+    id: 'barkeep',
     name: 'sillytavern api',
     description: 'A api servers for SillyTavern server.',
 };
