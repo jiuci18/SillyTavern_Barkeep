@@ -1,7 +1,5 @@
-import bodyParser from 'body-parser';
 import { Router } from 'express';
-import { Chalk } from 'chalk';
-import { loadConfig } from './config/config';
+import { exit, init } from './cmd/plugin';
 
 interface PluginInfo {
     id: string;
@@ -13,38 +11,6 @@ interface Plugin {
     init: (router: Router) => Promise<void>;
     exit: () => Promise<void>;
     info: PluginInfo;
-}
-
-const chalk = new Chalk();
-const MODULE_NAME = '[Sillytavern_Barkeeper]';
-
-/**
- * Initialize the plugin.
- * @param router Express Router
- */
-export async function init(router: Router): Promise<void> {
-    await loadConfig();
-    const jsonParser = bodyParser.json();
-    // Used to check if the server plugin is running
-    router.post('/probe', (_req, res) => {
-        return res.sendStatus(204);
-    });
-    // Use body-parser to parse the request body
-    router.post('/ping', jsonParser, async (req, res) => {
-        try {
-            const { message } = req.body;
-            return res.json({ message: `Pong! ${message}` });
-        } catch (error) {
-            console.error(chalk.red(MODULE_NAME), 'Request failed', error);
-            return res.status(500).send('Internal Server Error');
-        }
-    });
-
-    console.log(chalk.green(MODULE_NAME), 'Plugin loaded!');
-}
-
-export async function exit(): Promise<void> {
-    console.log(chalk.yellow(MODULE_NAME), 'Plugin exited');
 }
 
 export const info: PluginInfo = {
@@ -59,4 +25,5 @@ const plugin: Plugin = {
     info,
 };
 
+export { init, exit };
 export default plugin;

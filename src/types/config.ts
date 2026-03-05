@@ -12,6 +12,8 @@ export interface MainConfig {
 export interface EnvConfig {
     API_PASSWORD?: string;
     BARKEEPER_CONFIG_PATH?: string;
+    BARKEEPER_LISTEN?: string;
+    HTTP_MODE: boolean;
 }
 
 export interface SillyTavernConfig {

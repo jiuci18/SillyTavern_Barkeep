@@ -21,12 +21,30 @@ async function readYamlFile<T>(filePath: string): Promise<T> {
     return yaml.parse(raw) as T;
 }
 
+function parseBooleanEnv(value: string | undefined, defaultValue: boolean): boolean {
+    if (value === undefined) {
+        return defaultValue;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '1') {
+        return true;
+    }
+    if (normalized === 'false' || normalized === '0') {
+        return false;
+    }
+
+    return defaultValue;
+}
+
 function loadEnvConfig(): EnvConfig {
     const envPath = path.resolve(getPluginRoot(), '.env');
     dotenv.config({ path: envPath });
     return {
         API_PASSWORD: process.env.API_PASSWORD,
         BARKEEPER_CONFIG_PATH: process.env.BARKEEPER_CONFIG_PATH,
+        BARKEEPER_LISTEN: process.env.BARKEEPER_LISTEN,
+        HTTP_MODE: parseBooleanEnv(process.env.HTTP_MODE, true),
     };
 }
 
