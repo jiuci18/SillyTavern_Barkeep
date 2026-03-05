@@ -1,22 +1,11 @@
-import http, { IncomingMessage, ServerResponse } from 'http';
+import http, { IncomingMessage } from 'http';
 import { Chalk } from 'chalk';
+import { dispatchApiRequest, getApiRoute, internalErrorResponse } from '../api';
+import { writeHttpResponse } from './response';
 
 const chalk = new Chalk();
 const MODULE_NAME = '[Sillytavern_Barkeeper]';
 let standaloneServer: http.Server | null = null;
-
-function setCorsHeaders(res: { setHeader: (name: string, value: string) => void }): void {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Test-Header');
-}
-
-function sendJson(res: ServerResponse, statusCode: number, data: unknown): void {
-    setCorsHeaders(res);
-    res.statusCode = statusCode;
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.end(JSON.stringify(data));
-}
 
 function parseListenAddress(listen: string): { host: string; port: number } {
     const defaultAddr = { host: '0.0.0.0', port: 10024 };
@@ -41,6 +30,11 @@ function parseListenAddress(listen: string): { host: string; port: number } {
     return { host, port };
 }
 
+function getPathFromUrl(rawUrl?: string): string {
+    const [path] = (rawUrl ?? '/').split('?');
+    return path || '/';
+}
+
 async function readRequestBody(req: IncomingMessage): Promise<string> {
     const chunks: Buffer[] = [];
 
@@ -51,43 +45,27 @@ async function readRequestBody(req: IncomingMessage): Promise<string> {
     return Buffer.concat(chunks).toString('utf8');
 }
 
-async function handleStandaloneRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const method = req.method ?? 'GET';
-    const path = (req.url ?? '/').split('?')[0];
+async function parseJsonBody(req: IncomingMessage): Promise<unknown> {
+    const rawBody = await readRequestBody(req);
+    return rawBody ? JSON.parse(rawBody) : {};
+}
 
-    if (method === 'OPTIONS' && path === '/cors-test') {
-        setCorsHeaders(res);
-        res.statusCode = 204;
-        res.end();
-        return;
-    }
+async function handleStandaloneRequest(req: IncomingMessage, res: http.ServerResponse): Promise<void> {
+    try {
+        const method = req.method ?? 'GET';
+        const path = getPathFromUrl(req.url);
+        const route = getApiRoute(method, path);
 
-    if (method === 'GET' && path === '/cors-test') {
-        sendJson(res, 200, { ok: true, ts: Date.now() });
-        return;
-    }
-
-    if (method === 'POST' && path === '/probe') {
-        setCorsHeaders(res);
-        res.statusCode = 204;
-        res.end();
-        return;
-    }
-
-    if (method === 'POST' && path === '/ping') {
-        try {
-            const rawBody = await readRequestBody(req);
-            const body = rawBody ? JSON.parse(rawBody) : {};
-            const message = typeof body.message === 'string' ? body.message : '';
-            sendJson(res, 200, { message: `Pong! ${message}` });
-        } catch (error) {
-            console.error(chalk.red(MODULE_NAME), 'Request failed', error);
-            sendJson(res, 500, { error: 'Internal Server Error' });
+        let body: unknown = undefined;
+        if (route?.requiresJsonBody) {
+            body = await parseJsonBody(req);
         }
-        return;
-    }
 
-    sendJson(res, 404, { error: 'Not Found' });
+        const result = await dispatchApiRequest(method, path, body);
+        writeHttpResponse(res, result);
+    } catch (error) {
+        writeHttpResponse(res, internalErrorResponse(error));
+    }
 }
 
 export async function startStandaloneHttpServer(listen: string): Promise<void> {

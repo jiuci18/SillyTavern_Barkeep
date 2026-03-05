@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { Chalk } from 'chalk';
 import { getConfig, loadConfig } from '../config/config';
-import { startStandaloneHttpServer, stopStandaloneHttpServer } from './http';
-import { registerSillyTavernRouter } from './router';
+import { startStandaloneHttpServer, stopStandaloneHttpServer } from './transport/http';
+import { registerSillyTavernRouter } from './transport/router';
 
 const chalk = new Chalk();
 const MODULE_NAME = '[Sillytavern_Barkeeper]';
