@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import type { ServerResponse } from 'http';
-import type { ApiRouteResult } from '../api';
+import type { ApiRouteResult } from '../../types/api';
 
 interface HeaderWritable {
     setHeader: (name: string, value: string) => void;

@@ -1,6 +1,6 @@
 import http, { IncomingMessage } from 'http';
 import { Chalk } from 'chalk';
-import { dispatchApiRequest, getApiRoute, internalErrorResponse } from '../api';
+import { dispatchApiRequest, internalErrorResponse, matchApiRoute } from '../api';
 import { writeHttpResponse } from './response';
 
 const chalk = new Chalk();
@@ -54,10 +54,10 @@ async function handleStandaloneRequest(req: IncomingMessage, res: http.ServerRes
     try {
         const method = req.method ?? 'GET';
         const path = getPathFromUrl(req.url);
-        const route = getApiRoute(method, path);
+        const routeMatch = matchApiRoute(method, path);
 
         let body: unknown = undefined;
-        if (route?.requiresJsonBody) {
+        if (routeMatch?.route.requiresJsonBody) {
             body = await parseJsonBody(req);
         }
 

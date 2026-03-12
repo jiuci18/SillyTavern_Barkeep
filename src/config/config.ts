@@ -64,6 +64,9 @@ async function loadSillyTavernConfig(confPath: string): Promise<SillyTavernConfi
     }
 
     const data = await readYamlFile<Record<string, unknown>>(confPath);
+    const configPath = path.resolve(confPath);
+    const configDir = path.dirname(configPath);
+    const dataRootValue = typeof data?.dataRoot === 'string' && data.dataRoot.trim().length > 0 ? data.dataRoot : './data';
     const basicAuthMode = Boolean(data?.basicAuthMode);
     const whitelistMode = Boolean(data?.whitelistMode);
     const whitelist = Array.isArray(data?.whitelist) ? data.whitelist.filter((v) => typeof v === 'string') : [];
@@ -72,6 +75,8 @@ async function loadSillyTavernConfig(confPath: string): Promise<SillyTavernConfi
     const enableDiscreetLogin = Boolean(data?.enableDiscreetLogin);
 
     return {
+        configPath,
+        dataRoot: path.resolve(configDir, dataRootValue),
         basicAuthMode,
         whitelistMode,
         whitelist,

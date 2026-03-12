@@ -1,26 +1,10 @@
 import { Chalk } from 'chalk';
+import { handleUserStatusList } from '../../handler/status';
+import type { ApiMethod, ApiRouteDefinition, ApiRouteMatch, ApiRouteResult } from '../../types/api';
+import { matchRoutePath } from '../../utils/route';
 
 const chalk = new Chalk();
 const MODULE_NAME = '[Sillytavern_Barkeeper]';
-
-export type ApiMethod = 'GET' | 'POST' | 'OPTIONS';
-
-export interface ApiRouteResult {
-    statusCode: number;
-    body?: unknown;
-    headers?: Record<string, string>;
-}
-
-interface ApiRouteContext {
-    body: unknown;
-}
-
-export interface ApiRouteDefinition {
-    method: ApiMethod;
-    path: string;
-    requiresJsonBody?: boolean;
-    handler: (ctx: ApiRouteContext) => Promise<ApiRouteResult> | ApiRouteResult;
-}
 
 const DEFAULT_CORS_HEADERS: Readonly<Record<string, string>> = {
     'Access-Control-Allow-Origin': '*',
@@ -76,6 +60,11 @@ export const API_ROUTES: readonly ApiRouteDefinition[] = [
             body: { message: `Pong! ${extractMessage(body)}` },
         }),
     },
+    {
+        method: 'GET',
+        path: '/v1/{user}/status/list',
+        handler: handleUserStatusList,
+    },
 ];
 
 const API_ROUTE_MAP: ReadonlyMap<string, ApiRouteDefinition> = new Map(
@@ -86,26 +75,75 @@ export function getApiRoute(method: string, path: string): ApiRouteDefinition | 
     return API_ROUTE_MAP.get(routeKey(method, path)) ?? null;
 }
 
-export async function executeApiRoute(route: ApiRouteDefinition, body: unknown): Promise<ApiRouteResult> {
+export function matchApiRoute(method: string, path: string): ApiRouteMatch | null {
+    const exactRoute = getApiRoute(method, path);
+    if (exactRoute) {
+        return {
+            route: exactRoute,
+            params: {},
+        };
+    }
+
+    const normalizedMethod = method.toUpperCase();
+    for (const route of API_ROUTES) {
+        if (route.method !== normalizedMethod) {
+            continue;
+        }
+
+        const params = matchRoutePath(route.path, path);
+        if (params) {
+            return {
+                route,
+                params,
+            };
+        }
+    }
+
+    return null;
+}
+
+export async function executeApiRoute(
+    route: ApiRouteDefinition,
+    body: unknown,
+    params: Record<string, string>,
+    path: string
+): Promise<ApiRouteResult> {
     try {
-        const result = await route.handler({ body });
+        const result = await route.handler({ body, params, path });
         return {
             ...result,
             headers: withDefaultHeaders(result.headers),
         };
     } catch (error) {
+        const err = error as Error & { code?: string };
+        if (err.code === 'USER_NOT_FOUND') {
+            return {
+                statusCode: 404,
+                body: { error: err.message },
+                headers: withDefaultHeaders(),
+            };
+        }
+
+        if (err.message === 'Invalid user handle.') {
+            return {
+                statusCode: 400,
+                body: { error: err.message },
+                headers: withDefaultHeaders(),
+            };
+        }
+
         return internalErrorResponse(error);
     }
 }
 
 export async function dispatchApiRequest(method: string, path: string, body?: unknown): Promise<ApiRouteResult> {
-    const route = getApiRoute(method, path);
+    const match = matchApiRoute(method, path);
 
-    if (!route) {
+    if (!match) {
         return notFoundResponse();
     }
 
-    return executeApiRoute(route, body);
+    return executeApiRoute(match.route, body, match.params, path);
 }
 
 export function notFoundResponse(): ApiRouteResult {

@@ -17,6 +17,8 @@ export interface EnvConfig {
 }
 
 export interface SillyTavernConfig {
+    configPath: string;
+    dataRoot: string;
     basicAuthMode: boolean;
     whitelistMode: boolean;
     whitelist: string[];
