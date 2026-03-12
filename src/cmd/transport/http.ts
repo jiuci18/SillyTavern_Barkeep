@@ -1,7 +1,7 @@
 import http, { IncomingMessage } from 'http';
 import { Chalk } from 'chalk';
-import { dispatchApiRequest, internalErrorResponse, matchApiRoute } from '../api';
-import { writeHttpResponse } from './response';
+import { createInternalErrorResponse } from '../../utils/api-response';
+import { applyHttpCors, executeMatchedApiRequest, getMatchedApiRoute, isPreflightRequest, writeHttpResponse } from './shared';
 
 const chalk = new Chalk();
 const MODULE_NAME = '[Sillytavern_Barkeeper]';
@@ -52,19 +52,26 @@ async function parseJsonBody(req: IncomingMessage): Promise<unknown> {
 
 async function handleStandaloneRequest(req: IncomingMessage, res: http.ServerResponse): Promise<void> {
     try {
+        applyHttpCors(req, res);
+
         const method = req.method ?? 'GET';
         const path = getPathFromUrl(req.url);
-        const routeMatch = matchApiRoute(method, path);
 
+        if (isPreflightRequest(method)) {
+            writeHttpResponse(res, { statusCode: 204 });
+            return;
+        }
+
+        const routeMatch = getMatchedApiRoute(method, path);
         let body: unknown = undefined;
         if (routeMatch?.route.requiresJsonBody) {
             body = await parseJsonBody(req);
         }
 
-        const result = await dispatchApiRequest(method, path, body);
+        const result = await executeMatchedApiRequest(method, path, body);
         writeHttpResponse(res, result);
     } catch (error) {
-        writeHttpResponse(res, internalErrorResponse(error));
+        writeHttpResponse(res, createInternalErrorResponse(error));
     }
 }
 

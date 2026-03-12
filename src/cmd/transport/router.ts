@@ -1,8 +1,9 @@
 import bodyParser from 'body-parser';
 import type { Request, RequestHandler, Response, Router } from 'express';
 import type { ApiMethod } from '../../types/api';
-import { API_ROUTES, dispatchApiRequest, notFoundResponse } from '../api';
-import { writeExpressResponse } from './response';
+import { createNotFoundResponse } from '../../utils/api-response';
+import { API_ROUTES } from '../api';
+import { applyExpressCors, executeMatchedApiRequest, isPreflightRequest, writeExpressResponse } from './shared';
 
 type RouteRegistrar = (path: string, ...handlers: RequestHandler[]) => Router;
 
@@ -22,6 +23,17 @@ export function registerSillyTavernRouter(router: Router): void {
     const jsonParser = bodyParser.json();
     const registerByMethod = createRouteRegistrars(router);
 
+    router.use((req: Request, res: Response, next) => {
+        applyExpressCors(req, res);
+
+        if (isPreflightRequest(req.method)) {
+            res.status(204).end();
+            return;
+        }
+
+        next();
+    });
+
     for (const route of API_ROUTES) {
         const handlers: RequestHandler[] = [];
 
@@ -30,7 +42,7 @@ export function registerSillyTavernRouter(router: Router): void {
         }
 
         handlers.push(async (req: Request, res: Response): Promise<void> => {
-            const result = await dispatchApiRequest(route.method, req.path, req.body);
+            const result = await executeMatchedApiRequest(route.method, req.path, req.body);
             writeExpressResponse(res, result);
         });
 
@@ -38,6 +50,6 @@ export function registerSillyTavernRouter(router: Router): void {
     }
 
     router.use((_req: Request, res: Response) => {
-        writeExpressResponse(res, notFoundResponse());
+        writeExpressResponse(res, createNotFoundResponse());
     });
 }
