@@ -11,8 +11,22 @@ export function createNotFoundResponse(): ApiRouteResult {
     };
 }
 
+export function createBadRequestResponse(message: string): ApiRouteResult {
+    return {
+        statusCode: 400,
+        body: { error: message },
+    };
+}
+
+export function createUnauthorizedResponse(message = 'Unauthorized'): ApiRouteResult {
+    return {
+        statusCode: 401,
+        body: { error: message },
+    };
+}
+
 export function createInternalErrorResponse(error?: unknown): ApiRouteResult {
-    console.error(chalk.red(MODULE_NAME), 'Request failed', error);
+    console.error(chalk.red(MODULE_NAME), '[Api]Request failed', error);
     return {
         statusCode: 500,
         body: { error: 'Internal Server Error' },

@@ -1,3 +1,4 @@
+import { handleLogin } from '../../handler/auth';
 import { handleUserStatusList } from '../../handler/status';
 import type { ApiMethod, ApiRouteDefinition, ApiRouteMatch, ApiRouteResult } from '../../types/api';
 import { createInternalErrorResponse } from '../../utils/api-response';
@@ -13,6 +14,13 @@ function extractMessage(body: unknown): string {
 }
 
 export const API_ROUTES: readonly ApiRouteDefinition[] = [
+    {
+        method: 'POST',
+        path: '/v1/login',
+        requiresJsonBody: true,
+        requiresAuth: false,
+        handler: handleLogin,
+    },
     {
         method: 'GET',
         path: '/v1/{user}/status/list',

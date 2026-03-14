@@ -16,6 +16,7 @@ export interface ApiRouteDefinition {
     method: ApiMethod;
     path: string;
     requiresJsonBody?: boolean;
+    requiresAuth?: boolean;
     handler: (ctx: ApiRouteContext) => Promise<ApiRouteResult> | ApiRouteResult;
 }
 

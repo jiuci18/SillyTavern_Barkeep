@@ -26,7 +26,7 @@ function parseBooleanEnv(value: string | undefined, defaultValue: boolean): bool
         return defaultValue;
     }
 
-    const normalized = value.trim().toLowerCase();
+    const normalized = value.toLowerCase();
     if (normalized === 'true' || normalized === '1') {
         return true;
     }
@@ -42,9 +42,10 @@ function loadEnvConfig(): EnvConfig {
     dotenv.config({ path: envPath });
     return {
         API_PASSWORD: process.env.API_PASSWORD,
+        API_PASSWORD_ENABLE: parseBooleanEnv(process.env.API_PASSWORD_ENABLE, false),
         BARKEEPER_CONFIG_PATH: process.env.BARKEEPER_CONFIG_PATH,
         BARKEEPER_LISTEN: process.env.BARKEEPER_LISTEN,
-        HTTP_MODE: parseBooleanEnv(process.env.HTTP_MODE, true),
+        HTTP_MODE: parseBooleanEnv(process.env.HTTP_MODE, false),
     };
 }
 
@@ -96,9 +97,11 @@ export async function loadConfig(): Promise<LoadedConfig> {
 
     loadPromise = (async () => {
         const env = loadEnvConfig();
-        const mainPath = env.BARKEEPER_CONFIG_PATH
-            ? path.resolve(env.BARKEEPER_CONFIG_PATH)
-            : path.resolve(getPluginRoot(), 'data', 'config', 'main_conf.json');
+        if (!env.BARKEEPER_CONFIG_PATH) {
+            throw new Error('BARKEEPER_CONFIG_PATH is required. Please set it in the plugin .env file.');
+        }
+
+        const mainPath = path.resolve(env.BARKEEPER_CONFIG_PATH);
         const main = await readJsonFile<MainConfig>(mainPath);
         const sillytavern = await loadSillyTavernConfig(main.sys_conf.main_conf.sillytavern_conf_path);
         const loaded: LoadedConfig = { main, env, sillytavern };

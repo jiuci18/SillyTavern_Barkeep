@@ -1,5 +1,6 @@
 import bodyParser from 'body-parser';
 import type { Request, RequestHandler, Response, Router } from 'express';
+import { authorizeApiRequest } from '../../middleware/auth';
 import type { ApiMethod } from '../../types/api';
 import { createNotFoundResponse } from '../../utils/api-response';
 import { API_ROUTES } from '../api';
@@ -42,6 +43,12 @@ export function registerSillyTavernRouter(router: Router): void {
         }
 
         handlers.push(async (req: Request, res: Response): Promise<void> => {
+            const authResult = authorizeApiRequest(route, req.headers.authorization);
+            if (authResult) {
+                writeExpressResponse(res, authResult);
+                return;
+            }
+
             const result = await executeMatchedApiRequest(route.method, req.path, req.body);
             writeExpressResponse(res, result);
         });

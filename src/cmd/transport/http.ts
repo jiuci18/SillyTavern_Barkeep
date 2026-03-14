@@ -1,5 +1,6 @@
 import http, { IncomingMessage } from 'http';
 import { Chalk } from 'chalk';
+import { authorizeApiRequest } from '../../middleware/auth';
 import { createInternalErrorResponse } from '../../utils/api-response';
 import { applyHttpCors, executeMatchedApiRequest, getMatchedApiRoute, isPreflightRequest, writeHttpResponse } from './shared';
 
@@ -63,6 +64,12 @@ async function handleStandaloneRequest(req: IncomingMessage, res: http.ServerRes
         }
 
         const routeMatch = getMatchedApiRoute(method, path);
+        const authResult = authorizeApiRequest(routeMatch?.route ?? null, req.headers.authorization);
+        if (authResult) {
+            writeHttpResponse(res, authResult);
+            return;
+        }
+
         let body: unknown = undefined;
         if (routeMatch?.route.requiresJsonBody) {
             body = await parseJsonBody(req);
@@ -94,7 +101,7 @@ export async function startStandaloneHttpServer(listen: string): Promise<void> {
         });
     });
 
-    console.log(chalk.green(MODULE_NAME), `HTTP server started at http://${host}:${port}`);
+    console.log(chalk.green(MODULE_NAME), `[Http]HTTP server started at http://${host}:${port}`);
 }
 
 export async function stopStandaloneHttpServer(): Promise<void> {

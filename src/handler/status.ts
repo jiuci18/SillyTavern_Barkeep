@@ -101,6 +101,8 @@ async function getUserStatusList(user: string): Promise<UserStatusListResponse> 
 }
 
 export async function handleUserStatusList({ params }: ApiRouteContext): Promise<ApiRouteResult> {
+    console.log(`[Sillytavern_Barkeeper] Resource list requested for user: ${params.user}`);
+
     return {
         statusCode: 200,
         body: await getUserStatusList(params.user),
