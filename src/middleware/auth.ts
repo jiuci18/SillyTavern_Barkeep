@@ -5,7 +5,7 @@ import { isPasswordAuthEnabled, readBearerToken, verifyAccessToken } from './jwt
 
 export function authorizeApiRequest(
     route: ApiRouteDefinition | null,
-    authorizationHeader: IncomingHttpHeaders['authorization']
+    authorizationHeader: IncomingHttpHeaders['authorization'],
 ): ApiRouteResult | null {
     if (!route || route.requiresAuth === false || !isPasswordAuthEnabled()) {
         return null;

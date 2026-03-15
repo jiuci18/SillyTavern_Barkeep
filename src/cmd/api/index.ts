@@ -1,17 +1,8 @@
 import { handleLogin } from '../../handler/auth';
 import { handleUserStatusList } from '../../handler/status';
-import type { ApiMethod, ApiRouteDefinition, ApiRouteMatch, ApiRouteResult } from '../../types/api';
+import type { ApiRouteDefinition, ApiRouteMatch, ApiRouteResult } from '../../types/api';
 import { createInternalErrorResponse } from '../../utils/api-response';
 import { matchRoutePath } from '../../utils/route';
-
-function extractMessage(body: unknown): string {
-    if (!body || typeof body !== 'object') {
-        return '';
-    }
-
-    const message = (body as Record<string, unknown>).message;
-    return typeof message === 'string' ? message : '';
-}
 
 export const API_ROUTES: readonly ApiRouteDefinition[] = [
     {
@@ -51,7 +42,7 @@ export async function executeApiRoute(
     route: ApiRouteDefinition,
     body: unknown,
     params: Record<string, string>,
-    path: string
+    path: string,
 ): Promise<ApiRouteResult> {
     try {
         return await route.handler({ body, params, path });

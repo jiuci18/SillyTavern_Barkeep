@@ -29,7 +29,7 @@ export async function pathExists(targetPath: string): Promise<boolean> {
 
 export async function listFilesInDirectory(
     directoryPath: string,
-    options?: ListDirectoryOptions
+    options?: ListDirectoryOptions,
 ): Promise<AssetListItem[]> {
     const exists = await pathExists(directoryPath);
     if (!exists) {
@@ -58,7 +58,7 @@ export async function listFilesInDirectory(
                     size: stat.size,
                     updatedAt: stat.mtime.toISOString(),
                 };
-            })
+            }),
     );
 
     return sortAssetItems(items);

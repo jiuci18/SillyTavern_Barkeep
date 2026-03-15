@@ -10,6 +10,16 @@ export interface PresetListItem extends AssetListItem {
     category: string;
 }
 
+export interface CharacterChatGroup {
+    character: AssetListItem;
+    chats: AssetListItem[];
+}
+
+export interface UserStatusListChats {
+    characters: CharacterChatGroup[];
+    groupChats: AssetListItem[];
+}
+
 export interface PresetCategoryDefinition {
     responseKey: string;
     directoryName: string;
@@ -39,9 +49,14 @@ export interface UserStatusListResponse {
     characters: AssetListItem[];
     worlds: AssetListItem[];
     presets: UserStatusListPresets;
+    chats: UserStatusListChats;
     counts: {
         characters: number;
         worlds: number;
         presets: number;
+        characterChatGroups: number;
+        characterChats: number;
+        groupChats: number;
+        chats: number;
     };
 }

@@ -57,7 +57,7 @@ export function getMatchedApiRoute(method: string, path: string) {
 export async function executeMatchedApiRequest(
     method: string,
     path: string,
-    body?: unknown
+    body?: unknown,
 ): Promise<ApiRouteResult> {
     const routeMatch = getMatchedApiRoute(method, path);
     if (!routeMatch) {
