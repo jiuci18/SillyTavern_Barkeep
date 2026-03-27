@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { Chalk } from 'chalk';
 import { getConfig, loadConfig } from '../config/config';
+import { runDatabaseMigrations } from './migration';
 import { startStandaloneHttpServer, stopStandaloneHttpServer } from './transport/http';
 import { registerSillyTavernRouter } from './transport/router';
 
@@ -13,6 +14,7 @@ const MODULE_NAME = '[Sillytavern_Barkeeper]';
  */
 export async function init(router: Router): Promise<void> {
     await loadConfig();
+    await runDatabaseMigrations();
     const config = getConfig();
 
     if (config.env.HTTP_MODE) {

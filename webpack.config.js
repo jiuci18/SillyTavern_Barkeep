@@ -11,6 +11,9 @@ const serverConfig = {
         libraryTarget: 'commonjs',
         libraryExport: 'default',
     },
+    externals: {
+        'better-sqlite3': 'commonjs better-sqlite3',
+    },
     resolve: {
         extensions: ['.ts', '.js'],
     },

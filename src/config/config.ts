@@ -7,7 +7,7 @@ import { EnvConfig, LoadedConfig, MainConfig, SillyTavernConfig } from '../types
 let cachedConfig: LoadedConfig | null = null;
 let loadPromise: Promise<LoadedConfig> | null = null;
 
-function getPluginRoot(): string {
+export function getPluginRoot(): string {
     return path.resolve(__dirname, '..');
 }
 

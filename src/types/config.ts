@@ -5,6 +5,7 @@ export interface MainConfig {
         };
         main_conf: {
             sillytavern_conf_path: string;
+            database: string;
         };
     };
 }
