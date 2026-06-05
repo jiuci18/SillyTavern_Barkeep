@@ -2,33 +2,29 @@ import crypto from 'crypto';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { getConfig } from '../config/config';
 
-const ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7;
+const ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 24;
 const ACCESS_TOKEN_ISSUER = 'sillytavern-barkeep';
 const ACCESS_TOKEN_AUDIENCE = 'barkeep-api';
 const ACCESS_TOKEN_SCOPE = 'api';
-let temporaryPassword: string | null = null;
+let jwtSecret: string | null = null;
 
 export interface AccessTokenClaims extends JwtPayload {
     scope: string;
 }
 
-function getConfiguredPassword(): string {
+function getConfiguredPassword(): string | null {
     const password = getConfig().env.API_PASSWORD ?? '';
-    if (password.trim().length > 0) {
-        return password;
-    }
-
-    if (!temporaryPassword) {
-        temporaryPassword = crypto.randomBytes(8).toString('hex');
-        console.warn('[Sillytavern_Barkeeper] [JWT] API_PASSWORD is empty, generated temporary password:', temporaryPassword);
-    }
-
-    return temporaryPassword;
+    return password.trim().length > 0 ? password : null;
 }
 
 function getJwtSecret(): string {
-    const password = getConfiguredPassword();
-    return crypto.createHash('sha256').update(`barkeep:${password}`).digest('hex');
+    if (!jwtSecret) {
+        const envSecret = getConfig().env.JWT_SECRET?.trim();
+        jwtSecret = (envSecret && envSecret.length > 0)
+            ? envSecret
+            : crypto.randomBytes(64).toString('hex');
+    }
+    return jwtSecret;
 }
 
 export function isPasswordAuthEnabled(): boolean {
@@ -42,6 +38,10 @@ export function getAccessTokenTtlSeconds(): number {
 
 export function validateApiPassword(password: string): boolean {
     const expectedPassword = getConfiguredPassword();
+    if (expectedPassword === null) {
+        return false;
+    }
+
     const actual = Buffer.from(password);
     const expected = Buffer.from(expectedPassword);
 

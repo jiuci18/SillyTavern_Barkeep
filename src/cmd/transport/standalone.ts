@@ -1,8 +1,9 @@
-import http, { IncomingMessage } from 'http';
+//! Standalone Node HTTP server adapter for the shared API pipeline.
+
+import http from 'http';
 import { Chalk } from 'chalk';
-import { authorizeApiRequest } from '../../middleware/auth';
 import { createApiErrorResponse } from '../../utils/errors';
-import { applyHttpCors, executeMatchedApiRequest, getMatchedApiRoute, isPreflightRequest, writeHttpResponse } from './shared';
+import { createHttpTransportRequest, handleApiTransportRequest, writeHttpResponse } from './pipeline';
 
 const chalk = new Chalk();
 const MODULE_NAME = '[Sillytavern_Barkeeper]';
@@ -31,73 +32,16 @@ function parseListenAddress(listen: string): { host: string; port: number } {
     return { host, port };
 }
 
-function getPathFromUrl(rawUrl?: string): string {
-    const [path] = (rawUrl ?? '/').split('?');
-    return path || '/';
-}
-
-async function readRequestBody(req: IncomingMessage): Promise<string> {
-    const chunks: Buffer[] = [];
-
-    for await (const chunk of req) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-
-    return Buffer.concat(chunks).toString('utf8');
-}
-
-async function parseJsonBody(req: IncomingMessage): Promise<unknown> {
-    const rawBody = await readRequestBody(req);
-    if (!rawBody) {
-        return {};
-    }
-
-    return JSON.parse(rawBody);
-}
-
-async function parseRawBody(req: IncomingMessage): Promise<Buffer> {
-    const chunks: Buffer[] = [];
-
-    for await (const chunk of req) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-
-    return Buffer.concat(chunks);
-}
-
-async function handleStandaloneRequest(req: IncomingMessage, res: http.ServerResponse): Promise<void> {
+async function handleStandaloneRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     try {
-        applyHttpCors(req, res);
-
-        const method = req.method ?? 'GET';
-        const path = getPathFromUrl(req.url);
-
-        if (isPreflightRequest(method)) {
-            writeHttpResponse(res, { statusCode: 204 });
-            return;
-        }
-
-        const routeMatch = getMatchedApiRoute(method, path);
-        const authResult = authorizeApiRequest(routeMatch?.route ?? null, req.headers.authorization);
-        if (authResult) {
-            writeHttpResponse(res, authResult);
-            return;
-        }
-
-        let body: unknown = undefined;
-        if (routeMatch?.route.bodyMode === 'raw') {
-            body = await parseRawBody(req);
-        } else if (routeMatch?.route.requiresJsonBody || routeMatch?.route.bodyMode === 'json') {
-            body = await parseJsonBody(req);
-        }
-
-        const result = await executeMatchedApiRequest(method, path, body);
+        const result = await handleApiTransportRequest(createHttpTransportRequest(req));
         writeHttpResponse(res, result);
     } catch (error) {
         writeHttpResponse(res, createApiErrorResponse(error));
     }
 }
 
+/** Start the standalone HTTP server unless it is already running. */
 export async function startStandaloneHttpServer(listen: string): Promise<void> {
     if (standaloneServer) {
         return;
@@ -120,6 +64,7 @@ export async function startStandaloneHttpServer(listen: string): Promise<void> {
     console.log(chalk.green(MODULE_NAME), `[Http]HTTP server started at http://${host}:${port}`);
 }
 
+/** Stop the standalone HTTP server if it is running. */
 export async function stopStandaloneHttpServer(): Promise<void> {
     if (!standaloneServer) {
         return;

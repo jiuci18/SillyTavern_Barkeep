@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { Chalk } from 'chalk';
 import { getConfig, loadConfig } from '../config/config';
 import { runDatabaseMigrations } from './migration';
-import { startStandaloneHttpServer, stopStandaloneHttpServer } from './transport/http';
-import { registerSillyTavernRouter } from './transport/router';
+import { startStandaloneHttpServer, stopStandaloneHttpServer } from './transport/standalone';
+import { registerExpressTransport } from './transport/express';
 import { startFileWatcher, stopFileWatcher } from '../service/watch/file-watcher';
 import { closeDatabase } from '../db/connection';
 
@@ -25,7 +25,7 @@ export async function init(router: Router): Promise<void> {
         return;
     }
 
-    registerSillyTavernRouter(router);
+    registerExpressTransport(router);
 
     console.log(chalk.green(MODULE_NAME), '[Main]Plugin loaded! (SillyTavern router mode)');
 }

@@ -1,30 +1,20 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { getConfig } from '../config/config';
+import { getConfig, PRESET_CATEGORIES } from '../config/config';
 import type { ApiRouteContext, ApiRouteResult } from '../types/api';
 import type {
     AssetListItem,
     CharacterChatGroup,
-    PresetCategoryDefinition,
     UserStatusListPresets,
     UserStatusListResponse,
 } from '../types/status';
+import { ErrorCode, createNotFoundError } from '../utils/errors';
 import { listFilesInDirectory, pathExists, sortAssetItems } from '../utils/files';
 import { assertSafeUserHandle } from '../utils/user';
 
 const CHARACTER_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp']);
 const CHAT_EXTENSION = '.jsonl';
 const DEFAULT_SINGLE_USER_HANDLE = 'default-user';
-const PRESET_CATEGORIES: readonly PresetCategoryDefinition[] = [
-    { responseKey: 'openai', directoryName: 'OpenAI Settings', stripSuffixes: ['.json'] },
-    { responseKey: 'textgen', directoryName: 'TextGen Settings', stripSuffixes: ['.json'] },
-    { responseKey: 'koboldai', directoryName: 'KoboldAI Settings', stripSuffixes: ['.json'] },
-    { responseKey: 'novelai', directoryName: 'NovelAI Settings', stripSuffixes: ['.json'] },
-    { responseKey: 'instruct', directoryName: 'instruct', stripSuffixes: ['.json'] },
-    { responseKey: 'context', directoryName: 'context', stripSuffixes: ['.json'] },
-    { responseKey: 'sysprompt', directoryName: 'sysprompt', stripSuffixes: ['.json'] },
-    { responseKey: 'quickReplies', directoryName: 'QuickReplies', stripSuffixes: ['.json'] },
-] as const;
 
 function resolveEffectiveUserHandle(user: string): string {
     const config = getConfig();
@@ -113,9 +103,7 @@ async function getUserStatusList(user: string): Promise<UserStatusListResponse> 
     const userExists = await pathExists(userDirectory);
 
     if (!userExists) {
-        const error = new Error(`User "${safeUser}" not found.`);
-        (error as Error & { code?: string }).code = 'USER_NOT_FOUND';
-        throw error;
+        throw createNotFoundError(ErrorCode.UserNotFound, `User "${safeUser}" not found.`);
     }
 
     const [characters, worlds, presetGroups, groupChats] = await Promise.all([

@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 import type { FileMetadata } from '../../types/resource';
+import { ErrorCode, createBadRequestError } from '../../utils/errors';
 
 /** Compute a sha256 hash for file identity checks. */
 export async function hashFile(filePath: string): Promise<string> {
@@ -15,9 +16,7 @@ export async function hashFile(filePath: string): Promise<string> {
 export async function readFileMetadata(filePath: string, relativePath: string): Promise<FileMetadata> {
     const stat = await fs.stat(filePath);
     if (!stat.isFile()) {
-        const error = new Error('Resource path is not a file.');
-        (error as Error & { code?: string }).code = 'RESOURCE_NOT_FILE';
-        throw error;
+        throw createBadRequestError(ErrorCode.ResourceNotFile, 'Resource path is not a file.');
     }
 
     return {

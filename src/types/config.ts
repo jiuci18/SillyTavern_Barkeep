@@ -16,6 +16,7 @@ export interface EnvConfig {
     BARKEEPER_CONFIG_PATH?: string;
     BARKEEPER_LISTEN?: string;
     HTTP_MODE: boolean;
+    JWT_SECRET?: string;
 }
 
 export interface SillyTavernConfig {

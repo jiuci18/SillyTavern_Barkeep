@@ -2,23 +2,13 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { getConfig } from '../../config/config';
+import { getConfig, PRESET_DIRECTORY_NAMES } from '../../config/config';
 import { findMappingByPath, markMappingStatus, updateMappingContent, updateMappingLocation } from '../../db/file-mapping';
 import { hashFile } from '../resource/file';
 import type { ResourceType } from '../../types/resource';
 import { pathExists } from '../../utils/files';
 
 const DEFAULT_SINGLE_USER_HANDLE = 'default-user';
-const PRESET_DIRECTORIES = [
-    'OpenAI Settings',
-    'TextGen Settings',
-    'KoboldAI Settings',
-    'NovelAI Settings',
-    'instruct',
-    'context',
-    'sysprompt',
-    'QuickReplies',
-] as const;
 
 export interface FileSnapshotEntry {
     user: string;
@@ -111,7 +101,7 @@ export async function scanResourceSnapshot(): Promise<FileSnapshot> {
             scanResourceDirectory(snapshot, user, userDirectory, 'worlds', 'worlds'),
             scanResourceDirectory(snapshot, user, userDirectory, 'chats', 'chats'),
             scanResourceDirectory(snapshot, user, userDirectory, 'chats', 'group chats'),
-            ...PRESET_DIRECTORIES.map((directory) => scanResourceDirectory(snapshot, user, userDirectory, 'presets', directory)),
+            ...PRESET_DIRECTORY_NAMES.map((directory) => scanResourceDirectory(snapshot, user, userDirectory, 'presets', directory)),
         ]);
     }
 
@@ -164,7 +154,15 @@ async function prehashAddedCandidates(added: FileSnapshotEntry[], removed: FileS
     return candidateHashes;
 }
 
-/** Diff two snapshots and update file_mapping for external edits, renames, and removals. */
+/**
+ * Diff two snapshots and update file_mapping for external edits, renames, and removals.
+ *
+ * This intentionally does NOT create mappings for newly appeared files.
+ * Registration is an explicit API operation (PUT /v1/{user}/src); silently
+ * creating mappings on every filesystem change would trigger a cascade of DB
+ * writes and SHA-256 hashing whenever someone bulk-adds or shuffles resource
+ * files, causing unnecessary I/O.
+ */
 export async function synchronizeMappingsFromSnapshots(previous: FileSnapshot, current: FileSnapshot): Promise<void> {
     const removed: FileSnapshotEntry[] = [];
     const added: FileSnapshotEntry[] = [];

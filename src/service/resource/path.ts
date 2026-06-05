@@ -2,21 +2,12 @@
 
 import path from 'path';
 import fs from 'fs/promises';
-import { getConfig } from '../../config/config';
+import { getConfig, PRESET_DIRECTORIES } from '../../config/config';
 import type { ResourceType } from '../../types/resource';
+import { ErrorCode, createBadRequestError } from '../../utils/errors';
 import { assertSafeUserHandle } from '../../utils/user';
 
 const DEFAULT_SINGLE_USER_HANDLE = 'default-user';
-const PRESET_DIRECTORIES = new Set([
-    'OpenAI Settings',
-    'TextGen Settings',
-    'KoboldAI Settings',
-    'NovelAI Settings',
-    'instruct',
-    'context',
-    'sysprompt',
-    'QuickReplies',
-]);
 
 function resolveEffectiveUserHandle(user: string): string {
     const config = getConfig();
@@ -77,9 +68,7 @@ function isPathAllowedForType(fileType: ResourceType, relativePath: string): boo
 export function resolveResourcePath(user: string, fileType: ResourceType, relativePath: string) {
     const normalizedPath = normalizeRelativePath(relativePath);
     if (!normalizedPath || !isPathAllowedForType(fileType, normalizedPath)) {
-        const error = new Error('Invalid resource path.');
-        (error as Error & { code?: string }).code = 'INVALID_RESOURCE_PATH';
-        throw error;
+        throw createBadRequestError(ErrorCode.InvalidResourcePath, 'Invalid resource path.');
     }
 
     const { safeUser, userDirectory } = resolveUserDirectory(user);
@@ -87,9 +76,7 @@ export function resolveResourcePath(user: string, fileType: ResourceType, relati
     const relativeToUser = path.relative(userDirectory, absolutePath);
 
     if (relativeToUser.startsWith('..') || path.isAbsolute(relativeToUser)) {
-        const error = new Error('Invalid resource path.');
-        (error as Error & { code?: string }).code = 'INVALID_RESOURCE_PATH';
-        throw error;
+        throw createBadRequestError(ErrorCode.InvalidResourcePath, 'Invalid resource path.');
     }
 
     return {
@@ -120,9 +107,7 @@ export async function assertExistingResourceInsideUserDirectory(resolved: Resolv
     ]);
 
     if (!isPathInsideDirectory(realUserDirectory, realResourcePath)) {
-        const error = new Error('Resource path escapes user directory.');
-        (error as Error & { code?: string }).code = 'INVALID_RESOURCE_PATH';
-        throw error;
+        throw createBadRequestError(ErrorCode.InvalidResourcePath, 'Resource path escapes user directory.');
     }
 }
 
@@ -137,8 +122,6 @@ export async function assertWritableResourceInsideUserDirectory(resolved: Resolv
     ]);
 
     if (!isPathInsideDirectory(realUserDirectory, realParentDirectory)) {
-        const error = new Error('Resource path escapes user directory.');
-        (error as Error & { code?: string }).code = 'INVALID_RESOURCE_PATH';
-        throw error;
+        throw createBadRequestError(ErrorCode.InvalidResourcePath, 'Resource path escapes user directory.');
     }
 }

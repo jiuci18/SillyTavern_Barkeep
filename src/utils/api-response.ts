@@ -25,6 +25,13 @@ export function createUnauthorizedResponse(message = 'Unauthorized'): ApiRouteRe
     };
 }
 
+export function createPayloadTooLargeResponse(message: string): ApiRouteResult {
+    return {
+        statusCode: 413,
+        body: { error: message },
+    };
+}
+
 export function createInternalErrorResponse(error?: unknown): ApiRouteResult {
     console.error(chalk.red(MODULE_NAME), '[Api]Request failed', error);
     return {

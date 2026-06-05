@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import yaml from 'yaml';
 import { EnvConfig, LoadedConfig, MainConfig, SillyTavernConfig } from '../types/config';
 
+export { PRESET_CATEGORIES, PRESET_DIRECTORY_NAMES, PRESET_DIRECTORIES } from './constants';
+
 let cachedConfig: LoadedConfig | null = null;
 let loadPromise: Promise<LoadedConfig> | null = null;
 
@@ -46,6 +48,7 @@ function loadEnvConfig(): EnvConfig {
         BARKEEPER_CONFIG_PATH: process.env.BARKEEPER_CONFIG_PATH,
         BARKEEPER_LISTEN: process.env.BARKEEPER_LISTEN,
         HTTP_MODE: parseBooleanEnv(process.env.HTTP_MODE, false),
+        JWT_SECRET: process.env.JWT_SECRET,
     };
 }
 
