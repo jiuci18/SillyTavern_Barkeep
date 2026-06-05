@@ -9,8 +9,8 @@ interface HeaderWritable {
     setHeader: (name: string, value: string) => void;
 }
 
-const DEFAULT_CORS_METHODS = 'GET,POST,OPTIONS';
-const DEFAULT_CORS_HEADERS = 'Content-Type, Authorization, X-Test-Header';
+const DEFAULT_CORS_METHODS = 'GET,POST,PUT,DELETE,OPTIONS';
+const DEFAULT_CORS_HEADERS = 'Content-Type, Authorization';
 
 function resolveAllowedOrigin(origin?: string): string | null {
     if (!origin) {
@@ -85,6 +85,11 @@ export function writeExpressResponse(res: Response, result: ApiRouteResult): voi
         return;
     }
 
+    if (Buffer.isBuffer(result.body)) {
+        res.status(result.statusCode).send(result.body);
+        return;
+    }
+
     res.status(result.statusCode).json(result.body);
 }
 
@@ -94,6 +99,11 @@ export function writeHttpResponse(res: ServerResponse, result: ApiRouteResult): 
 
     if (result.body === undefined) {
         res.end();
+        return;
+    }
+
+    if (Buffer.isBuffer(result.body)) {
+        res.end(result.body);
         return;
     }
 

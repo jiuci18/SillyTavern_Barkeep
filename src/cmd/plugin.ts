@@ -4,6 +4,8 @@ import { getConfig, loadConfig } from '../config/config';
 import { runDatabaseMigrations } from './migration';
 import { startStandaloneHttpServer, stopStandaloneHttpServer } from './transport/http';
 import { registerSillyTavernRouter } from './transport/router';
+import { startFileWatcher, stopFileWatcher } from '../service/watch/file-watcher';
+import { closeDatabase } from '../db/connection';
 
 const chalk = new Chalk();
 const MODULE_NAME = '[Sillytavern_Barkeeper]';
@@ -15,6 +17,7 @@ const MODULE_NAME = '[Sillytavern_Barkeeper]';
 export async function init(router: Router): Promise<void> {
     await loadConfig();
     await runDatabaseMigrations();
+    await startFileWatcher();
     const config = getConfig();
 
     if (config.env.HTTP_MODE) {
@@ -28,6 +31,8 @@ export async function init(router: Router): Promise<void> {
 }
 
 export async function exit(): Promise<void> {
+    await stopFileWatcher();
     await stopStandaloneHttpServer();
+    closeDatabase();
     console.log(chalk.yellow(MODULE_NAME), '[Main]Plugin exited');
 }

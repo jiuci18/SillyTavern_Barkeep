@@ -1,4 +1,5 @@
-export type ApiMethod = 'GET' | 'POST' | 'OPTIONS';
+export type ApiMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS';
+export type ApiBodyMode = 'json' | 'raw';
 
 export interface ApiRouteResult {
     statusCode: number;
@@ -15,6 +16,7 @@ export interface ApiRouteContext {
 export interface ApiRouteDefinition {
     method: ApiMethod;
     path: string;
+    bodyMode?: ApiBodyMode;
     requiresJsonBody?: boolean;
     requiresAuth?: boolean;
     handler: (ctx: ApiRouteContext) => Promise<ApiRouteResult> | ApiRouteResult;

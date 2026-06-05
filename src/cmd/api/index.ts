@@ -1,13 +1,16 @@
 import { handleLogin } from '../../handler/auth';
+import { handleResourceDelete, handleResourceGet, handleResourcePost } from '../../handler/resource';
+import { handleSourceInfo, handleSourceRegister } from '../../handler/src';
 import { handleUserStatusList } from '../../handler/status';
 import type { ApiRouteDefinition, ApiRouteMatch, ApiRouteResult } from '../../types/api';
-import { createInternalErrorResponse } from '../../utils/api-response';
+import { createApiErrorResponse } from '../../utils/errors';
 import { matchRoutePath } from '../../utils/route';
 
 export const API_ROUTES: readonly ApiRouteDefinition[] = [
     {
         method: 'POST',
         path: '/v1/login',
+        bodyMode: 'json',
         requiresJsonBody: true,
         requiresAuth: false,
         handler: handleLogin,
@@ -16,6 +19,36 @@ export const API_ROUTES: readonly ApiRouteDefinition[] = [
         method: 'GET',
         path: '/v1/{user}/status/list',
         handler: handleUserStatusList,
+    },
+    {
+        method: 'POST',
+        path: '/v1/{user}/src',
+        bodyMode: 'json',
+        requiresJsonBody: true,
+        handler: handleSourceInfo,
+    },
+    {
+        method: 'PUT',
+        path: '/v1/{user}/src',
+        bodyMode: 'json',
+        requiresJsonBody: true,
+        handler: handleSourceRegister,
+    },
+    {
+        method: 'GET',
+        path: '/v1/{user}/{resource}/{uuid}',
+        handler: handleResourceGet,
+    },
+    {
+        method: 'POST',
+        path: '/v1/{user}/{resource}/{uuid}',
+        bodyMode: 'raw',
+        handler: handleResourcePost,
+    },
+    {
+        method: 'DELETE',
+        path: '/v1/{user}/{resource}/{uuid}',
+        handler: handleResourceDelete,
     },
 ];
 
@@ -47,21 +80,6 @@ export async function executeApiRoute(
     try {
         return await route.handler({ body, params, path });
     } catch (error) {
-        const err = error as Error & { code?: string };
-        if (err.code === 'USER_NOT_FOUND') {
-            return {
-                statusCode: 404,
-                body: { error: err.message },
-            };
-        }
-
-        if (err.message === 'Invalid user handle.') {
-            return {
-                statusCode: 400,
-                body: { error: err.message },
-            };
-        }
-
-        return createInternalErrorResponse(error);
+        return createApiErrorResponse(error);
     }
 }

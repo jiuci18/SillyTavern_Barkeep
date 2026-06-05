@@ -107,7 +107,11 @@ export async function loadConfig(): Promise<LoadedConfig> {
         const loaded: LoadedConfig = { main, env, sillytavern };
         cachedConfig = loaded;
         return loaded;
-    })();
+    })().catch((error) => {
+        loadPromise = null;
+        cachedConfig = null;
+        throw error;
+    });
 
     return loadPromise;
 }

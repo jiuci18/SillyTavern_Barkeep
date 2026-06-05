@@ -2,15 +2,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Chalk } from 'chalk';
 import { getConfig } from '../config/config';
+import { getDatabase } from '../db/connection';
 
-interface SQLiteDatabase {
-    exec: (sql: string) => unknown;
-    close: () => void;
-}
-
-type SQLiteDatabaseConstructor = new (filename: string) => SQLiteDatabase;
-
-const Database = require('better-sqlite3') as SQLiteDatabaseConstructor;
 const chalk = new Chalk();
 const MODULE_NAME = '[Sillytavern_Barkeeper]';
 
@@ -43,21 +36,17 @@ export async function runDatabaseMigrations(): Promise<void> {
     }
 
     await fs.mkdir(path.dirname(resolvedDatabasePath), { recursive: true });
-    const db = new Database(resolvedDatabasePath);
+    const db = getDatabase();
 
-    try {
-        for (const migrationFile of migrationFiles) {
-            const migrationPath = path.join(migrationsDir, migrationFile);
-            const sql = await fs.readFile(migrationPath, 'utf8');
+    for (const migrationFile of migrationFiles) {
+        const migrationPath = path.join(migrationsDir, migrationFile);
+        const sql = await fs.readFile(migrationPath, 'utf8');
 
-            if (!sql.trim()) {
-                continue;
-            }
-
-            db.exec(sql);
-            console.log(chalk.green(MODULE_NAME), `[DB]Executed migration: ${migrationFile}`);
+        if (!sql.trim()) {
+            continue;
         }
-    } finally {
-        db.close();
+
+        db.exec(sql);
+        console.log(chalk.green(MODULE_NAME), `[DB]Executed migration: ${migrationFile}`);
     }
 }

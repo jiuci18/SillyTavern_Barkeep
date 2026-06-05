@@ -1,7 +1,7 @@
 import http, { IncomingMessage } from 'http';
 import { Chalk } from 'chalk';
 import { authorizeApiRequest } from '../../middleware/auth';
-import { createInternalErrorResponse } from '../../utils/api-response';
+import { createApiErrorResponse } from '../../utils/errors';
 import { applyHttpCors, executeMatchedApiRequest, getMatchedApiRoute, isPreflightRequest, writeHttpResponse } from './shared';
 
 const chalk = new Chalk();
@@ -48,7 +48,21 @@ async function readRequestBody(req: IncomingMessage): Promise<string> {
 
 async function parseJsonBody(req: IncomingMessage): Promise<unknown> {
     const rawBody = await readRequestBody(req);
-    return rawBody ? JSON.parse(rawBody) : {};
+    if (!rawBody) {
+        return {};
+    }
+
+    return JSON.parse(rawBody);
+}
+
+async function parseRawBody(req: IncomingMessage): Promise<Buffer> {
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of req) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    return Buffer.concat(chunks);
 }
 
 async function handleStandaloneRequest(req: IncomingMessage, res: http.ServerResponse): Promise<void> {
@@ -71,14 +85,16 @@ async function handleStandaloneRequest(req: IncomingMessage, res: http.ServerRes
         }
 
         let body: unknown = undefined;
-        if (routeMatch?.route.requiresJsonBody) {
+        if (routeMatch?.route.bodyMode === 'raw') {
+            body = await parseRawBody(req);
+        } else if (routeMatch?.route.requiresJsonBody || routeMatch?.route.bodyMode === 'json') {
             body = await parseJsonBody(req);
         }
 
         const result = await executeMatchedApiRequest(method, path, body);
         writeHttpResponse(res, result);
     } catch (error) {
-        writeHttpResponse(res, createInternalErrorResponse(error));
+        writeHttpResponse(res, createApiErrorResponse(error));
     }
 }
 

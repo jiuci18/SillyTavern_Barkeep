@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS file_mapping (
         status IN (
             'normal',
             'not-found',
-            'pending'
+            'pending',
+            'unresolved'
         )
     ),
     created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),

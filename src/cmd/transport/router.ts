@@ -1,8 +1,9 @@
 import bodyParser from 'body-parser';
-import type { Request, RequestHandler, Response, Router } from 'express';
+import type { NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import { authorizeApiRequest } from '../../middleware/auth';
 import type { ApiMethod } from '../../types/api';
 import { createNotFoundResponse } from '../../utils/api-response';
+import { createApiErrorResponse } from '../../utils/errors';
 import { API_ROUTES } from '../api';
 import { applyExpressCors, executeMatchedApiRequest, isPreflightRequest, writeExpressResponse } from './shared';
 
@@ -12,6 +13,8 @@ function createRouteRegistrars(router: Router): Record<ApiMethod, RouteRegistrar
     return {
         GET: router.get.bind(router),
         POST: router.post.bind(router),
+        PUT: router.put.bind(router),
+        DELETE: router.delete.bind(router),
         OPTIONS: router.options.bind(router),
     };
 }
@@ -22,6 +25,7 @@ function toExpressPath(path: string): string {
 
 export function registerSillyTavernRouter(router: Router): void {
     const jsonParser = bodyParser.json();
+    const rawParser = bodyParser.raw({ type: '*/*', limit: '50mb' });
     const registerByMethod = createRouteRegistrars(router);
 
     router.use((req: Request, res: Response, next) => {
@@ -38,7 +42,9 @@ export function registerSillyTavernRouter(router: Router): void {
     for (const route of API_ROUTES) {
         const handlers: RequestHandler[] = [];
 
-        if (route.requiresJsonBody) {
+        if (route.bodyMode === 'raw') {
+            handlers.push(rawParser);
+        } else if (route.requiresJsonBody || route.bodyMode === 'json') {
             handlers.push(jsonParser);
         }
 
@@ -58,5 +64,9 @@ export function registerSillyTavernRouter(router: Router): void {
 
     router.use((_req: Request, res: Response) => {
         writeExpressResponse(res, createNotFoundResponse());
+    });
+
+    router.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
+        writeExpressResponse(res, createApiErrorResponse(error));
     });
 }
