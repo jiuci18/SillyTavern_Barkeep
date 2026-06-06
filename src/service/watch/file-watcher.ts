@@ -35,10 +35,6 @@ async function listWatchDirectories(rootDirectory: string): Promise<string[]> {
 
 async function rebuildWatchers(): Promise<void> {
     const config = getConfig();
-    if (!config.sillytavern) {
-        throw new Error('SillyTavern config is not loaded.');
-    }
-
     const directories = await listWatchDirectories(config.sillytavern.dataRoot);
     const nextDirectories = new Set(directories);
 
@@ -117,10 +113,6 @@ export async function startFileWatcher(): Promise<void> {
     }
 
     const config = getConfig();
-    if (!config.sillytavern) {
-        throw new Error('SillyTavern config is not loaded.');
-    }
-
     snapshot = await scanResourceSnapshot();
     await rebuildWatchers();
 

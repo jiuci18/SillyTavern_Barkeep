@@ -27,7 +27,7 @@ function getSnapshotKey(entry: Pick<FileSnapshotEntry, 'user' | 'fileType' | 're
 
 async function listUsers(dataRoot: string): Promise<string[]> {
     const config = getConfig();
-    if (!config.sillytavern?.enableUserAccounts) {
+    if (!config.sillytavern.enableUserAccounts) {
         return [DEFAULT_SINGLE_USER_HANDLE];
     }
 
@@ -87,10 +87,6 @@ async function scanResourceDirectory(
 /** Scan all known SillyTavern resource directories into a current file snapshot. */
 export async function scanResourceSnapshot(): Promise<FileSnapshot> {
     const config = getConfig();
-    if (!config.sillytavern) {
-        throw new Error('SillyTavern config is not loaded.');
-    }
-
     const snapshot: FileSnapshot = new Map();
     const users = await listUsers(config.sillytavern.dataRoot);
 

@@ -33,5 +33,5 @@ export interface SillyTavernConfig {
 export interface LoadedConfig {
     main: MainConfig;
     env: EnvConfig;
-    sillytavern: SillyTavernConfig | null;
+    sillytavern: SillyTavernConfig;
 }

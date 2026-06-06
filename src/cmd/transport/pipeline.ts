@@ -102,7 +102,7 @@ function createRequestBodyTooLargeError(): AppError {
     );
 }
 
-function parseContentLength(value: string | string[] | number | undefined): number | undefined {
+function parseContentLength(value: string | string[] | undefined): number | undefined {
     if (Array.isArray(value)) {
         throw new AppError(
             ErrorCode.InvalidContentLength,
@@ -115,7 +115,7 @@ function parseContentLength(value: string | string[] | number | undefined): numb
         return undefined;
     }
 
-    const size = typeof value === 'number' ? value : Number(value);
+    const size = Number(value);
     return Number.isFinite(size) && size >= 0 ? size : undefined;
 }
 

@@ -13,6 +13,13 @@ import {
 } from '../service/resource/path';
 import { parseResourceType } from '../service/resource/type';
 import { createBadRequestResponse } from '../utils/api-response';
+import {
+    createMappingNotFoundResponse,
+    createUnknownResourceTypeResponse,
+    createPendingUploadResponse,
+    createUnresolvedPathResponse,
+    createFileNotFoundResponse,
+} from '../utils/errors';
 
 function getRouteResourceType(params: Record<string, string>): ResourceType | null {
     return parseResourceType(params.resource);
@@ -55,64 +62,67 @@ export async function handleResourceGet({ params }: ApiRouteContext): Promise<Ap
     const { safeUser } = resolveUserDirectory(params.user);
     const mapping = findMappingByUuid(safeUser, params.uuid);
     if (!mapping) {
-        return { statusCode: 404, body: { error: 'Resource mapping is not found.' } };
+        return createMappingNotFoundResponse(
+            'Register a new mapping via POST /api/src with the resource path before accessing it.',
+        );
     }
     if (mapping.fileType === 'unknown') {
-        return { statusCode: 409, body: { error: 'Resource mapping type is unknown.', uuid: mapping.uuid } };
+        return createUnknownResourceTypeResponse(
+            mapping.uuid,
+            'Delete this mapping and re-register the resource with an explicit type.',
+        );
     }
     if (mapping.fileType !== fileType) {
-        return { statusCode: 404, body: { error: 'Resource mapping is not found.' } };
+        return createMappingNotFoundResponse(
+            'Register a new mapping via POST /api/src with the resource path before accessing it.',
+        );
     }
 
     if (mapping.status === 'pending') {
-        return { statusCode: 409, body: { error: 'Resource is pending upload.', uuid: mapping.uuid } };
+        return createPendingUploadResponse(
+            mapping.uuid,
+            'POST the file bytes to this resource endpoint to complete the upload.',
+        );
     }
 
     if (mapping.status === 'unresolved') {
-        return {
-            statusCode: 409,
-            body: {
-                error: 'Resource mapping is unresolved.',
-                uuid: mapping.uuid,
-                previousPath: mapping.filePath,
-            },
-        };
+        return createUnresolvedPathResponse(
+            mapping.uuid,
+            mapping.filePath,
+            'The file has been moved or deleted. Re-register the resource at its new path, or re-upload it.',
+        );
     }
 
     if (mapping.status === 'not-found') {
-        return { statusCode: 404, body: { error: 'Resource file is not found.', uuid: mapping.uuid, status: 'not-found' } };
+        return createFileNotFoundResponse(
+            mapping.uuid,
+            'The file was previously deleted. Re-upload via POST to restore it.',
+        );
     }
 
     const resolved = resolveResourcePath(params.user, fileType, mapping.filePath);
-    try {
-        await assertExistingResourceInsideUserDirectory(resolved);
-    } catch (error) {
-        if (!isNotFoundFsError(error)) {
-            throw error;
-        }
-
-        markMappingStatus(mapping.uuid, 'unresolved');
-        return {
-            statusCode: 409,
-            body: {
-                error: 'Resource mapping is unresolved.',
-                uuid: mapping.uuid,
-                previousPath: mapping.filePath,
-            },
-        };
-    }
 
     const content = await readExistingFile(resolved.absolutePath);
     if (!content) {
         markMappingStatus(mapping.uuid, 'unresolved');
-        return {
-            statusCode: 409,
-            body: {
-                error: 'Resource mapping is unresolved.',
-                uuid: mapping.uuid,
-                previousPath: mapping.filePath,
-            },
-        };
+        return createUnresolvedPathResponse(
+            mapping.uuid,
+            mapping.filePath,
+            'The file has been moved or deleted. Re-register the resource at its new path, or re-upload it.',
+        );
+    }
+    try {
+        await assertExistingResourceInsideUserDirectory(resolved);
+    } catch (error) {
+        if (isNotFoundFsError(error)) {
+            markMappingStatus(mapping.uuid, 'unresolved');
+            return createUnresolvedPathResponse(
+                mapping.uuid,
+                mapping.filePath,
+                'The file has been moved or deleted. Re-register the resource at its new path, or re-upload it.',
+            );
+        }
+        throw error;
     }
 
     return {
@@ -120,7 +130,6 @@ export async function handleResourceGet({ params }: ApiRouteContext): Promise<Ap
         headers: {
             'Content-Type': getContentType(fileType),
             'X-Resource-UUID': mapping.uuid,
-            'X-Resource-Path': encodeURIComponent(mapping.filePath),
         },
         body: content,
     };
@@ -140,13 +149,20 @@ export async function handleResourcePost({ body, params }: ApiRouteContext): Pro
     const { safeUser } = resolveUserDirectory(params.user);
     const mapping = findMappingByUuid(safeUser, params.uuid);
     if (!mapping) {
-        return { statusCode: 404, body: { error: 'Resource mapping is not found.' } };
+        return createMappingNotFoundResponse(
+            'Register a new mapping via POST /api/src with the resource path before uploading.',
+        );
     }
     if (mapping.fileType === 'unknown') {
-        return { statusCode: 409, body: { error: 'Resource mapping type is unknown.', uuid: mapping.uuid } };
+        return createUnknownResourceTypeResponse(
+            mapping.uuid,
+            'Delete this mapping and re-register the resource with an explicit type.',
+        );
     }
     if (mapping.fileType !== fileType) {
-        return { statusCode: 404, body: { error: 'Resource mapping is not found.' } };
+        return createMappingNotFoundResponse(
+            'Register a new mapping via POST /api/src with the resource path before uploading.',
+        );
     }
 
     const resolved = resolveResourcePath(params.user, fileType, mapping.filePath);
@@ -174,13 +190,20 @@ export async function handleResourceDelete({ params }: ApiRouteContext): Promise
     const { safeUser } = resolveUserDirectory(params.user);
     const mapping = findMappingByUuid(safeUser, params.uuid);
     if (!mapping) {
-        return { statusCode: 404, body: { error: 'Resource mapping is not found.' } };
+        return createMappingNotFoundResponse(
+            'Register a new mapping via POST /api/src with the resource path before deleting.',
+        );
     }
     if (mapping.fileType === 'unknown') {
-        return { statusCode: 409, body: { error: 'Resource mapping type is unknown.', uuid: mapping.uuid } };
+        return createUnknownResourceTypeResponse(
+            mapping.uuid,
+            'Delete this mapping and re-register the resource with an explicit type.',
+        );
     }
     if (mapping.fileType !== fileType) {
-        return { statusCode: 404, body: { error: 'Resource mapping is not found.' } };
+        return createMappingNotFoundResponse(
+            'Register a new mapping via POST /api/src with the resource path before deleting.',
+        );
     }
 
     const resolved = resolveResourcePath(params.user, fileType, mapping.filePath);

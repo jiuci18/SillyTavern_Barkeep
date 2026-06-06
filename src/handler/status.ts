@@ -18,10 +18,6 @@ const DEFAULT_SINGLE_USER_HANDLE = 'default-user';
 
 function resolveEffectiveUserHandle(user: string): string {
     const config = getConfig();
-    if (!config.sillytavern) {
-        throw new Error('SillyTavern config is not loaded.');
-    }
-
     if (!config.sillytavern.enableUserAccounts) {
         return DEFAULT_SINGLE_USER_HANDLE;
     }
@@ -31,10 +27,6 @@ function resolveEffectiveUserHandle(user: string): string {
 
 function buildUserDirectoryPath(user: string): string {
     const config = getConfig();
-    if (!config.sillytavern) {
-        throw new Error('SillyTavern config is not loaded.');
-    }
-
     return path.join(config.sillytavern.dataRoot, resolveEffectiveUserHandle(user));
 }
 
@@ -94,10 +86,6 @@ async function listCharacterChatGroups(userDirectory: string, characters: AssetL
 
 async function getUserStatusList(user: string): Promise<UserStatusListResponse> {
     const config = getConfig();
-    if (!config.sillytavern) {
-        throw new Error('SillyTavern config is not loaded.');
-    }
-
     const safeUser = resolveEffectiveUserHandle(user);
     const userDirectory = buildUserDirectoryPath(safeUser);
     const userExists = await pathExists(userDirectory);

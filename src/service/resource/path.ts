@@ -11,10 +11,6 @@ const DEFAULT_SINGLE_USER_HANDLE = 'default-user';
 
 function resolveEffectiveUserHandle(user: string): string {
     const config = getConfig();
-    if (!config.sillytavern) {
-        throw new Error('SillyTavern config is not loaded.');
-    }
-
     if (!config.sillytavern.enableUserAccounts) {
         return DEFAULT_SINGLE_USER_HANDLE;
     }
@@ -25,10 +21,6 @@ function resolveEffectiveUserHandle(user: string): string {
 /** Resolve the data directory for a request user, respecting single-user mode. */
 export function resolveUserDirectory(user: string): { safeUser: string; userDirectory: string } {
     const config = getConfig();
-    if (!config.sillytavern) {
-        throw new Error('SillyTavern config is not loaded.');
-    }
-
     const safeUser = resolveEffectiveUserHandle(user);
     return {
         safeUser,

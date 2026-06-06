@@ -52,7 +52,7 @@ function loadEnvConfig(): EnvConfig {
     };
 }
 
-async function loadSillyTavernConfig(confPath: string): Promise<SillyTavernConfig | null> {
+async function loadSillyTavernConfig(confPath: string): Promise<SillyTavernConfig> {
     if (!confPath || confPath.trim().length === 0) {
         throw new Error('sillytavern_conf_path is empty. Please set it in data/config/main_conf.json.');
     }
