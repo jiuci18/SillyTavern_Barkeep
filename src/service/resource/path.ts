@@ -41,6 +41,29 @@ function normalizeRelativePath(relativePath: string): string | null {
     return normalized;
 }
 
+function addDefaultResourceDirectory(fileType: ResourceType, relativePath: string): string {
+    const [firstSegment] = relativePath.split('/');
+    const hasKnownDirectory = firstSegment === 'characters'
+        || firstSegment === 'worlds'
+        || firstSegment === 'chats'
+        || firstSegment === 'group chats'
+        || PRESET_DIRECTORIES.has(firstSegment);
+    if (hasKnownDirectory) {
+        return relativePath;
+    }
+
+    switch (fileType) {
+        case 'characters':
+            return `characters/${relativePath}`;
+        case 'worlds':
+            return `worlds/${relativePath}`;
+        case 'chats':
+            return `chats/${relativePath}`;
+        case 'presets':
+            return `OpenAI Settings/${relativePath}`;
+    }
+}
+
 function isPathAllowedForType(fileType: ResourceType, relativePath: string): boolean {
     const [firstSegment] = relativePath.split('/');
 
@@ -58,7 +81,10 @@ function isPathAllowedForType(fileType: ResourceType, relativePath: string): boo
 
 /** Resolve and validate a resource path under the user's SillyTavern data directory. */
 export function resolveResourcePath(user: string, fileType: ResourceType, relativePath: string) {
-    const normalizedPath = normalizeRelativePath(relativePath);
+    const normalizedInput = normalizeRelativePath(relativePath);
+    const normalizedPath = normalizedInput
+        ? addDefaultResourceDirectory(fileType, normalizedInput)
+        : null;
     if (!normalizedPath || !isPathAllowedForType(fileType, normalizedPath)) {
         throw createBadRequestError(ErrorCode.InvalidResourcePath, 'Invalid resource path.');
     }
