@@ -49,45 +49,50 @@ export function findMappingByPath(user: string, fileType: ResourceType, filePath
 
 /** Create a pending mapping for a future file write. */
 export function createPendingMapping(input: CreatePendingMappingInput): FileMapping {
-    const existing = findMappingByPath(input.user, input.fileType, input.filePath);
-    if (existing) {
-        return existing;
-    }
-
     const uuid = crypto.randomUUID();
-    getDatabase()
+    const created = getDatabase()
         .prepare<[string, string, string, string, string]>(
-            'INSERT INTO file_mapping (uuid, file_path, user, file_type, status) VALUES (?, ?, ?, ?, ?)',
+            `INSERT INTO file_mapping (uuid, file_path, user, file_type, status)
+             VALUES (?, ?, ?, ?, ?)
+             ON CONFLICT(user, file_type, file_path) DO NOTHING
+             RETURNING *`,
         )
-        .run(uuid, input.filePath, input.user, toStoredFileType(input.fileType), 'pending');
+        .get(uuid, input.filePath, input.user, toStoredFileType(input.fileType), 'pending') as FileMappingRow | undefined;
 
-    const created = findMappingByUuid(input.user, uuid);
-    if (!created) {
-        throw new Error('Created mapping could not be read.');
+    if (created) {
+        return mapRow(created);
     }
-    return created;
+
+    const mapping = findMappingByPath(input.user, input.fileType, input.filePath);
+    if (!mapping) {
+        throw new Error('Pending mapping could not be read after upsert.');
+    }
+    return mapping;
 }
 
 /** Insert or refresh a normal mapping for an existing file. */
 export function upsertNormalMapping(input: UpsertNormalMappingInput): FileMapping {
-    const existing = findMappingByPath(input.user, input.fileType, input.filePath);
     const db = getDatabase();
-    if (existing) {
-        db.prepare<[number, string, string, string]>(
-            'UPDATE file_mapping SET file_size = ?, file_hash = ?, status = ? WHERE uuid = ?',
-        ).run(input.fileSize, input.fileHash, 'normal', existing.uuid);
-        return findMappingByUuid(input.user, existing.uuid) ?? existing;
-    }
-
     const uuid = crypto.randomUUID();
-    db.prepare<[string, string, number, string, string, string, string]>(
-        'INSERT INTO file_mapping (uuid, file_path, file_size, file_hash, user, file_type, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    ).run(uuid, input.filePath, input.fileSize, input.fileHash, input.user, toStoredFileType(input.fileType), 'normal');
-    const created = findMappingByUuid(input.user, uuid);
-    if (!created) {
-        throw new Error('Created mapping could not be read.');
-    }
-    return created;
+    const mapping = db.prepare<[string, string, number, string, string, string, string]>(
+        `INSERT INTO file_mapping (uuid, file_path, file_size, file_hash, user, file_type, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(user, file_type, file_path) DO UPDATE SET
+             file_size = excluded.file_size,
+             file_hash = excluded.file_hash,
+             status = excluded.status
+         RETURNING *`,
+    ).get(
+        uuid,
+        input.filePath,
+        input.fileSize,
+        input.fileHash,
+        input.user,
+        toStoredFileType(input.fileType),
+        'normal',
+    ) as FileMappingRow;
+
+    return mapRow(mapping);
 }
 
 /** Update size, hash, and status after a resource write. */

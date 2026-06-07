@@ -4,7 +4,6 @@ export interface MainConfig {
             cors_allow_hostlist: string[];
         };
         main_conf: {
-            sillytavern_conf_path: string;
             database: string;
         };
     };
@@ -17,9 +16,11 @@ export interface EnvConfig {
     BARKEEPER_LISTEN?: string;
     HTTP_MODE: boolean;
     JWT_SECRET?: string;
+    SILLYTAVERN_ROOT?: string;
 }
 
 export interface SillyTavernConfig {
+    rootPath: string;
     configPath: string;
     dataRoot: string;
     basicAuthMode: boolean;

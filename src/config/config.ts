@@ -3,6 +3,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import yaml from 'yaml';
 import { EnvConfig, LoadedConfig, MainConfig, SillyTavernConfig } from '../types/config';
+import { findSillyTavernRoot } from './sillytavern-root';
 
 export { PRESET_CATEGORIES, PRESET_DIRECTORY_NAMES, PRESET_DIRECTORIES } from './constants';
 
@@ -11,6 +12,10 @@ let loadPromise: Promise<LoadedConfig> | null = null;
 
 export function getPluginRoot(): string {
     return path.resolve(__dirname, '..');
+}
+
+function resolvePluginPath(filePath: string): string {
+    return path.resolve(getPluginRoot(), filePath);
 }
 
 async function readJsonFile<T>(filePath: string): Promise<T> {
@@ -49,14 +54,12 @@ function loadEnvConfig(): EnvConfig {
         BARKEEPER_LISTEN: process.env.BARKEEPER_LISTEN,
         HTTP_MODE: parseBooleanEnv(process.env.HTTP_MODE, false),
         JWT_SECRET: process.env.JWT_SECRET,
+        SILLYTAVERN_ROOT: process.env.SILLYTAVERN_ROOT,
     };
 }
 
-async function loadSillyTavernConfig(confPath: string): Promise<SillyTavernConfig> {
-    if (!confPath || confPath.trim().length === 0) {
-        throw new Error('sillytavern_conf_path is empty. Please set it in data/config/main_conf.json.');
-    }
-
+async function loadSillyTavernConfig(rootPath: string): Promise<SillyTavernConfig> {
+    const confPath = path.join(rootPath, 'config.yaml');
     try {
         await fs.access(confPath);
     } catch (error) {
@@ -79,6 +82,7 @@ async function loadSillyTavernConfig(confPath: string): Promise<SillyTavernConfi
     const enableDiscreetLogin = Boolean(data?.enableDiscreetLogin);
 
     return {
+        rootPath,
         configPath,
         dataRoot: path.resolve(configDir, dataRootValue),
         basicAuthMode,
@@ -104,9 +108,24 @@ export async function loadConfig(): Promise<LoadedConfig> {
             throw new Error('BARKEEPER_CONFIG_PATH is required. Please set it in the plugin .env file.');
         }
 
-        const mainPath = path.resolve(env.BARKEEPER_CONFIG_PATH);
+        const mainPath = resolvePluginPath(env.BARKEEPER_CONFIG_PATH);
         const main = await readJsonFile<MainConfig>(mainPath);
-        const sillytavern = await loadSillyTavernConfig(main.sys_conf.main_conf.sillytavern_conf_path);
+        const databasePath = main.sys_conf.main_conf.database;
+        if (!databasePath?.trim()) {
+            throw new Error('database path is empty. Please set main_conf.database in the main config.');
+        }
+        main.sys_conf.main_conf.database = resolvePluginPath(databasePath);
+
+        let sillytavernRoot: string;
+        try {
+            sillytavernRoot = await findSillyTavernRoot(getPluginRoot(), env.SILLYTAVERN_ROOT);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error(`[Sillytavern_Barkeeper] ${message}`);
+            throw error;
+        }
+        console.log(`[Sillytavern_Barkeeper] Detected SillyTavern root: ${sillytavernRoot}`);
+        const sillytavern = await loadSillyTavernConfig(sillytavernRoot);
         const loaded: LoadedConfig = { main, env, sillytavern };
         cachedConfig = loaded;
         return loaded;

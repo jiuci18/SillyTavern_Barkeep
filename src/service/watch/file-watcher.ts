@@ -112,7 +112,6 @@ export async function startFileWatcher(): Promise<void> {
         return;
     }
 
-    const config = getConfig();
     snapshot = await scanResourceSnapshot();
     await rebuildWatchers();
 

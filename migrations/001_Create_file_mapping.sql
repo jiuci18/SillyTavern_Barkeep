@@ -24,13 +24,9 @@ CREATE TABLE IF NOT EXISTS file_mapping (
         )
     ),
     created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-    updated_at INTEGER NOT NULL DEFAULT 0
+    updated_at INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (user, file_type, file_path)
 );
-
--- Create indexes
-CREATE INDEX IF NOT EXISTS idx_file_mapping_file_path ON file_mapping(file_path);
-CREATE INDEX IF NOT EXISTS idx_file_mapping_user ON file_mapping(user);
-CREATE INDEX IF NOT EXISTS idx_file_mapping_user_type ON file_mapping(user, file_type);
 
 -- Create trigger on file_mapping to auto-update updated_at
 CREATE TRIGGER IF NOT EXISTS trg_file_mapping_updated_at

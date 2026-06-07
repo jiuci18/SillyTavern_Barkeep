@@ -26,7 +26,6 @@ export async function runDatabaseMigrations(): Promise<void> {
         throw new Error('database path is empty. Please set main_conf.database in data/config/main_conf.json.');
     }
 
-    const resolvedDatabasePath = path.resolve(databasePath);
     const migrationsDir = getMigrationsDir();
     const migrationFiles = await readMigrationFiles(migrationsDir);
 
@@ -35,7 +34,7 @@ export async function runDatabaseMigrations(): Promise<void> {
         return;
     }
 
-    await fs.mkdir(path.dirname(resolvedDatabasePath), { recursive: true });
+    await fs.mkdir(path.dirname(databasePath), { recursive: true });
     const db = getDatabase();
 
     for (const migrationFile of migrationFiles) {

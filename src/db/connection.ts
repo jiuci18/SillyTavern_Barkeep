@@ -1,7 +1,6 @@
 //! Process-wide SQLite connection lifecycle.
 
 import { createRequire } from 'module';
-import path from 'path';
 import { getConfig } from '../config/config';
 
 export interface SQLiteStatement<TParams extends unknown[] = unknown[]> {
@@ -28,7 +27,7 @@ function resolveDatabasePath(): string {
         throw new Error('database path is empty. Please set main_conf.database in data/config/main_conf.json.');
     }
 
-    return path.resolve(databasePath);
+    return databasePath;
 }
 
 /** Return the process-wide SQLite connection, opening it on first use. */
