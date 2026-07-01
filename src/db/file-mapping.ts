@@ -47,6 +47,19 @@ export function findMappingByPath(user: string, fileType: ResourceType, filePath
     return row ? mapRow(row) : null;
 }
 
+/** List every registered file mapping for a user in stable creation order. */
+export function listMappingsByUser(user: string): FileMapping[] {
+    const rows = getDatabase()
+        .prepare<[string]>(
+            `SELECT * FROM file_mapping
+             WHERE user = ?
+             ORDER BY created_at ASC, uuid ASC`,
+        )
+        .all(user) as FileMappingRow[];
+
+    return rows.map(mapRow);
+}
+
 /** Create a pending mapping for a future file write. */
 export function createPendingMapping(input: CreatePendingMappingInput): FileMapping {
     const uuid = crypto.randomUUID();

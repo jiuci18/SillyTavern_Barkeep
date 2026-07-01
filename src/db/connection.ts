@@ -4,6 +4,7 @@ import { createRequire } from 'module';
 import { getConfig } from '../config/config';
 
 export interface SQLiteStatement<TParams extends unknown[] = unknown[]> {
+    all: (...params: TParams) => unknown[];
     get: (...params: TParams) => unknown;
     run: (...params: TParams) => { changes: number };
 }

@@ -20,6 +20,13 @@ export interface FileMapping {
     updatedAt: number;
 }
 
+/** Response returned when listing a user's registered resource mappings. */
+export interface RegisteredResourceList {
+    user: string;
+    count: number;
+    resources: FileMapping[];
+}
+
 export interface FileMetadata {
     path: string;
     size: number;

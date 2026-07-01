@@ -1,6 +1,6 @@
 import { handleLogin } from '../../handler/auth';
 import { handleResourceDelete, handleResourceGet, handleResourcePost } from '../../handler/resource';
-import { handleSourceInfo, handleSourceRegister } from '../../handler/src';
+import { handleSourceInfo, handleSourceList, handleSourceRegister } from '../../handler/src';
 import { handleUserStatusList } from '../../handler/status';
 import type { ApiRouteDefinition, ApiRouteMatch, ApiRouteResult } from '../../types/api';
 import { createApiErrorResponse } from '../../utils/errors';
@@ -19,6 +19,11 @@ export const API_ROUTES: readonly ApiRouteDefinition[] = [
         method: 'GET',
         path: '/v1/{user}/status/list',
         handler: handleUserStatusList,
+    },
+    {
+        method: 'GET',
+        path: '/v1/{user}/src',
+        handler: handleSourceList,
     },
     {
         method: 'POST',

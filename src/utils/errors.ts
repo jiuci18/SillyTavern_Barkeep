@@ -89,9 +89,6 @@ export function isPayloadTooLargeError(error: unknown): boolean {
         || (error instanceof AppError && error.code === ErrorCode.RequestBodyTooLarge);
 }
 
-// ---------------------------------------------------------------------------
-// Resource handler error factories — keep error shape consistent across GET / POST / DELETE
-// ---------------------------------------------------------------------------
 
 /** 404 — no mapping registered for this UUID at all. */
 export function createMappingNotFoundResponse(advice: string): ApiRouteResult {

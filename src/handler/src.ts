@@ -2,10 +2,15 @@
 
 import fs from 'fs/promises';
 import type { ApiRouteContext, ApiRouteResult } from '../types/api';
+import type { RegisteredResourceList } from '../types/resource';
 import { createBadRequestResponse } from '../utils/api-response';
-import { findMappingByPath, upsertNormalMapping, createPendingMapping } from '../db/file-mapping';
+import { createPendingMapping, findMappingByPath, listMappingsByUser, upsertNormalMapping } from '../db/file-mapping';
 import { readFileMetadata } from '../service/resource/file';
-import { assertExistingResourceInsideUserDirectory, resolveResourcePath } from '../service/resource/path';
+import {
+    assertExistingResourceInsideUserDirectory,
+    resolveResourcePath,
+    resolveUserDirectory,
+} from '../service/resource/path';
 import { parseResourceType } from '../service/resource/type';
 
 function parseSourceBody(body: unknown): { type: ReturnType<typeof parseResourceType>; path: string | null; create: boolean } {
@@ -28,6 +33,22 @@ async function fileExists(filePath: string): Promise<boolean> {
     } catch {
         return false;
     }
+}
+
+/** List every database-registered resource mapping for a user. */
+export function handleSourceList({ params }: ApiRouteContext): ApiRouteResult {
+    const { safeUser } = resolveUserDirectory(params.user);
+    const resources = listMappingsByUser(safeUser);
+    const body: RegisteredResourceList = {
+        user: safeUser,
+        count: resources.length,
+        resources,
+    };
+
+    return {
+        statusCode: 200,
+        body,
+    };
 }
 
 /** Return metadata and registration state for a user resource path. */
