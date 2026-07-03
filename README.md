@@ -30,6 +30,10 @@ Example `data/config/main_conf.json`:
 }
 ```
 
+## Connecting
+
+See [Connecting to the Barkeep API](docs/connecting.md) for base URLs, authentication flows, `curl` examples, and transport-specific security requirements.
+
 ## Registered resources
 
 List every database-registered resource for one effective SillyTavern user:

@@ -15,10 +15,15 @@ export interface SQLiteDatabase {
     close: () => void;
 }
 
-type SQLiteDatabaseConstructor = new (filename: string) => SQLiteDatabase;
+interface SQLiteDatabaseOptions {
+    nativeBinding: string;
+}
+
+type SQLiteDatabaseConstructor = new (filename: string, options: SQLiteDatabaseOptions) => SQLiteDatabase;
 
 const nodeRequire = createRequire(__filename);
 const Database = nodeRequire('better-sqlite3') as SQLiteDatabaseConstructor;
+const nativeBinding = nodeRequire.resolve('better-sqlite3/build/Release/better_sqlite3.node');
 
 let database: SQLiteDatabase | null = null;
 
@@ -34,7 +39,7 @@ function resolveDatabasePath(): string {
 /** Return the process-wide SQLite connection, opening it on first use. */
 export function getDatabase(): SQLiteDatabase {
     if (!database) {
-        database = new Database(resolveDatabasePath());
+        database = new Database(resolveDatabasePath(), { nativeBinding });
     }
 
     return database;

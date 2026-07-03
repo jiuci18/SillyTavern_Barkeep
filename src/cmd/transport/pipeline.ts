@@ -3,10 +3,10 @@
 import type { Request, Response } from 'express';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Readable } from 'stream';
-import type { ApiRouteDefinition, ApiRouteResult } from '../../types/api';
+import type { AccessScope, ApiRouteDefinition, ApiRouteResult } from '../../types/api';
 import { Chalk } from 'chalk';
 import { getConfig } from '../../config/config';
-import { authorizeApiRequest } from '../../middleware/auth';
+import { authorizeApiRequest, authorizeRouteUser } from '../../middleware/auth';
 import { createNotFoundResponse } from '../../utils/api-response';
 import { AppError, ErrorCode, createApiErrorResponse } from '../../utils/errors';
 import { executeApiRoute, matchApiRoute } from '../api';
@@ -32,10 +32,12 @@ export interface ApiTransportRequest {
     origin?: string;
     contentLength?: number;
     stream: Readable;
+    accessScope?: AccessScope;
+    clientAddress?: string;
 }
 
 const DEFAULT_CORS_METHODS = 'GET,POST,PUT,DELETE,OPTIONS';
-const DEFAULT_CORS_HEADERS = 'Content-Type, Authorization';
+const DEFAULT_CORS_HEADERS = 'Content-Type, Authorization, X-CSRF-Token';
 
 /** Maximum accepted API request body size used by every transport. */
 export const API_BODY_LIMIT_BYTES = 50 * 1024 * 1024;
@@ -170,17 +172,32 @@ export async function handleApiTransportRequest(req: ApiTransportRequest): Promi
         }
 
         const routeMatch = matchApiRoute(req.method, req.path);
-        const authResult = authorizeApiRequest(routeMatch?.route ?? null, req.authorization);
-        if (authResult) {
-            return withTransportHeaders(authResult, req);
+        const authorization = authorizeApiRequest(
+            routeMatch?.route ?? null,
+            req.authorization,
+            req.accessScope,
+        );
+        if (authorization.rejection) {
+            return withTransportHeaders(authorization.rejection, req);
         }
 
         if (!routeMatch) {
             return withTransportHeaders(createNotFoundResponse(), req);
         }
 
+        const userRejection = authorizeRouteUser(routeMatch.params, authorization.accessScope);
+        if (userRejection) {
+            return withTransportHeaders(userRejection, req);
+        }
+
         const body = await parseRouteBody(req, routeMatch.route);
-        const result = await executeApiRoute(routeMatch.route, body, routeMatch.params, req.path);
+        const result = await executeApiRoute(
+            routeMatch.route,
+            body,
+            routeMatch.params,
+            req.path,
+            req.clientAddress,
+        );
         return withTransportHeaders(result, req);
     } catch (error) {
         return withTransportHeaders(createApiErrorResponse(error), req);
@@ -230,6 +247,11 @@ export function writeHttpResponse(res: ServerResponse, result: ApiRouteResult): 
 
 /** Create the transport request shape from an Express request. */
 export function createExpressTransportRequest(req: Request): ApiTransportRequest {
+    const user = (req as Request & {
+        user?: { profile?: { handle?: unknown } };
+    }).user;
+    const handle = user?.profile?.handle;
+
     return {
         method: req.method,
         path: req.path,
@@ -237,6 +259,10 @@ export function createExpressTransportRequest(req: Request): ApiTransportRequest
         origin: req.header('origin') ?? undefined,
         contentLength: parseContentLength(req.headers['content-length']),
         stream: req,
+        accessScope: typeof handle === 'string'
+            ? { kind: 'user', handle }
+            : undefined,
+        clientAddress: req.ip,
     };
 }
 
@@ -251,5 +277,6 @@ export function createHttpTransportRequest(req: IncomingMessage): ApiTransportRe
         origin,
         contentLength: parseContentLength(req.headers['content-length']),
         stream: req,
+        clientAddress: req.socket.remoteAddress,
     };
 }

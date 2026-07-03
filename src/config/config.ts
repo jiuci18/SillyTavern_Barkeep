@@ -50,6 +50,7 @@ function loadEnvConfig(): EnvConfig {
     return {
         API_PASSWORD: process.env.API_PASSWORD,
         API_PASSWORD_ENABLE: parseBooleanEnv(process.env.API_PASSWORD_ENABLE, false),
+        API_PASSWORD_FORCE: parseBooleanEnv(process.env.API_PASSWORD_FORCE, false),
         BARKEEPER_CONFIG_PATH: process.env.BARKEEPER_CONFIG_PATH,
         BARKEEPER_LISTEN: process.env.BARKEEPER_LISTEN,
         HTTP_MODE: parseBooleanEnv(process.env.HTTP_MODE, false),
@@ -74,12 +75,12 @@ async function loadSillyTavernConfig(rootPath: string): Promise<SillyTavernConfi
     const configPath = path.resolve(confPath);
     const configDir = path.dirname(configPath);
     const dataRootValue = typeof data?.dataRoot === 'string' && data.dataRoot.trim().length > 0 ? data.dataRoot : './data';
-    const basicAuthMode = Boolean(data?.basicAuthMode);
-    const whitelistMode = Boolean(data?.whitelistMode);
+    const basicAuthMode = data?.basicAuthMode === true;
+    const whitelistMode = data?.whitelistMode === true;
     const whitelist = Array.isArray(data?.whitelist) ? data.whitelist.filter((v) => typeof v === 'string') : [];
-    const enableUserAccounts = Boolean(data?.enableUserAccounts);
-    const perUserBasicAuth = Boolean(data?.perUserBasicAuth);
-    const enableDiscreetLogin = Boolean(data?.enableDiscreetLogin);
+    const enableUserAccounts = data?.enableUserAccounts === true;
+    const perUserBasicAuth = data?.perUserBasicAuth === true;
+    const enableDiscreetLogin = data?.enableDiscreetLogin === true;
 
     return {
         rootPath,

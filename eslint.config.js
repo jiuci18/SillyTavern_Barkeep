@@ -25,7 +25,7 @@ module.exports = tseslint.config(
         ],
     },
     {
-        files: ['*.js', 'tests/**/*.js'],
+        files: ['*.js', 'scripts/**/*.js', 'tests/**/*.js'],
         languageOptions: {
             ecmaVersion: 'latest',
             globals: nodeGlobals,
@@ -67,7 +67,7 @@ module.exports = tseslint.config(
         },
     },
     {
-        files: ['*.js', 'tests/**/*.js'],
+        files: ['*.js', 'scripts/**/*.js', 'tests/**/*.js'],
         rules: {
             '@typescript-eslint/no-require-imports': 'off',
         },

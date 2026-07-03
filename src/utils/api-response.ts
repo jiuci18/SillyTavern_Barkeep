@@ -25,6 +25,13 @@ export function createUnauthorizedResponse(message = 'Unauthorized'): ApiRouteRe
     };
 }
 
+export function createForbiddenResponse(message = 'Forbidden'): ApiRouteResult {
+    return {
+        statusCode: 403,
+        body: { error: message },
+    };
+}
+
 export function createPayloadTooLargeResponse(message: string): ApiRouteResult {
     return {
         statusCode: 413,

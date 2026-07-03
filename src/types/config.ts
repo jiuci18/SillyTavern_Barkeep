@@ -12,6 +12,7 @@ export interface MainConfig {
 export interface EnvConfig {
     API_PASSWORD?: string;
     API_PASSWORD_ENABLE: boolean;
+    API_PASSWORD_FORCE: boolean;
     BARKEEPER_CONFIG_PATH?: string;
     BARKEEPER_LISTEN?: string;
     HTTP_MODE: boolean;

@@ -5,8 +5,8 @@
     "main": "dist/plugin.js",
     "type": "commonjs",
     "scripts": {
-        "build:dev": "webpack --mode development",
-        "build": "webpack --mode production",
+        "build:dev": "webpack --mode development && node scripts/copy-native-dependencies.js",
+        "build": "webpack --mode production && node scripts/copy-native-dependencies.js",
         "test": "tsc && node --test tests/*.test.js",
         "lint": "eslint .",
         "lint:fix": "eslint --fix ."

@@ -1,20 +1,18 @@
 import crypto from 'crypto';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { getConfig } from '../config/config';
+import { isApiPasswordEnabled } from '../service/auth/api-password';
+import type { AccessScope } from '../types/api';
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 24;
 const ACCESS_TOKEN_ISSUER = 'sillytavern-barkeep';
 const ACCESS_TOKEN_AUDIENCE = 'barkeep-api';
-const ACCESS_TOKEN_SCOPE = 'api';
+const USER_TOKEN_SCOPE = 'api:user';
+const SERVER_TOKEN_SCOPE = 'api:server';
 let jwtSecret: string | null = null;
 
 export interface AccessTokenClaims extends JwtPayload {
     scope: string;
-}
-
-function getConfiguredPassword(): string | null {
-    const password = getConfig().env.API_PASSWORD ?? '';
-    return password.trim().length > 0 ? password : null;
 }
 
 function getJwtSecret(): string {
@@ -27,42 +25,36 @@ function getJwtSecret(): string {
     return jwtSecret;
 }
 
-export function isPasswordAuthEnabled(): boolean {
-    const env = getConfig().env;
-    return env.API_PASSWORD_ENABLE && (env.API_PASSWORD?.trim().length ?? 0) > 0;
+/** Return whether standalone requests must present a Barkeep access token. */
+export function isTokenAuthEnabled(): boolean {
+    const config = getConfig();
+    if (config.env.API_PASSWORD_FORCE) {
+        return true;
+    }
+    return config.env.HTTP_MODE
+        && (config.sillytavern.enableUserAccounts || isApiPasswordEnabled());
 }
 
 export function getAccessTokenTtlSeconds(): number {
     return ACCESS_TOKEN_TTL_SECONDS;
 }
 
-export function validateApiPassword(password: string): boolean {
-    const expectedPassword = getConfiguredPassword();
-    if (expectedPassword === null) {
-        return false;
-    }
+/** Create a token constrained to one user or to the standalone server. */
+export function createAccessToken(accessScope: AccessScope): string {
+    const scope = accessScope.kind === 'user' ? USER_TOKEN_SCOPE : SERVER_TOKEN_SCOPE;
+    const subject = accessScope.kind === 'user' ? accessScope.handle : 'api-client';
 
-    const actual = Buffer.from(password);
-    const expected = Buffer.from(expectedPassword);
-
-    if (actual.length !== expected.length) {
-        return false;
-    }
-
-    return crypto.timingSafeEqual(actual, expected);
-}
-
-export function createAccessToken(): string {
-    return jwt.sign({ scope: ACCESS_TOKEN_SCOPE }, getJwtSecret(), {
+    return jwt.sign({ scope }, getJwtSecret(), {
         algorithm: 'HS256',
         expiresIn: ACCESS_TOKEN_TTL_SECONDS,
         issuer: ACCESS_TOKEN_ISSUER,
         audience: ACCESS_TOKEN_AUDIENCE,
-        subject: 'api-client',
+        subject,
     });
 }
 
-export function verifyAccessToken(token: string): AccessTokenClaims | null {
+/** Verify a token and recover its authorization scope. */
+export function verifyAccessToken(token: string): AccessScope | null {
     try {
         const decoded = jwt.verify(token, getJwtSecret(), {
             algorithms: ['HS256'],
@@ -70,11 +62,19 @@ export function verifyAccessToken(token: string): AccessTokenClaims | null {
             audience: ACCESS_TOKEN_AUDIENCE,
         });
 
-        if (typeof decoded === 'string' || decoded.scope !== ACCESS_TOKEN_SCOPE) {
+        if (typeof decoded === 'string') {
             return null;
         }
 
-        return decoded as AccessTokenClaims;
+        const claims = decoded as AccessTokenClaims;
+        if (claims.scope === SERVER_TOKEN_SCOPE && claims.sub === 'api-client') {
+            return { kind: 'server' };
+        }
+        if (claims.scope === USER_TOKEN_SCOPE && typeof claims.sub === 'string' && claims.sub.length > 0) {
+            return { kind: 'user', handle: claims.sub };
+        }
+
+        return null;
     } catch {
         return null;
     }

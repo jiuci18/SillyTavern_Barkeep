@@ -81,9 +81,10 @@ export async function executeApiRoute(
     body: unknown,
     params: Record<string, string>,
     path: string,
+    clientAddress?: string,
 ): Promise<ApiRouteResult> {
     try {
-        return await route.handler({ body, params, path });
+        return await route.handler({ body, params, path, clientAddress });
     } catch (error) {
         return createApiErrorResponse(error);
     }
