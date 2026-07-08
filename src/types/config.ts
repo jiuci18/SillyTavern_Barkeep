@@ -27,6 +27,8 @@ export interface SillyTavernConfig {
     basicAuthMode: boolean;
     whitelistMode: boolean;
     whitelist: string[];
+    corsEnabled: boolean;
+    corsOrigins: string[];
     enableUserAccounts: boolean;
     perUserBasicAuth: boolean;
     enableDiscreetLogin: boolean;

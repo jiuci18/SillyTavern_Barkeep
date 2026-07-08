@@ -78,6 +78,13 @@ async function loadSillyTavernConfig(rootPath: string): Promise<SillyTavernConfi
     const basicAuthMode = data?.basicAuthMode === true;
     const whitelistMode = data?.whitelistMode === true;
     const whitelist = Array.isArray(data?.whitelist) ? data.whitelist.filter((v) => typeof v === 'string') : [];
+    const cors = data?.cors && typeof data.cors === 'object' ? data.cors as Record<string, unknown> : {};
+    const corsEnabled = cors.enabled !== false;
+    const corsOrigins = Array.isArray(cors.origin)
+        ? cors.origin.filter((v) => typeof v === 'string')
+        : typeof cors.origin === 'string'
+            ? [cors.origin]
+            : [];
     const enableUserAccounts = data?.enableUserAccounts === true;
     const perUserBasicAuth = data?.perUserBasicAuth === true;
     const enableDiscreetLogin = data?.enableDiscreetLogin === true;
@@ -89,6 +96,8 @@ async function loadSillyTavernConfig(rootPath: string): Promise<SillyTavernConfi
         basicAuthMode,
         whitelistMode,
         whitelist,
+        corsEnabled,
+        corsOrigins,
         enableUserAccounts,
         perUserBasicAuth,
         enableDiscreetLogin,

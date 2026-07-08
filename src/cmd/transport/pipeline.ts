@@ -45,13 +45,22 @@ export const API_BODY_LIMIT_BYTES = 50 * 1024 * 1024;
 /** Human-readable request body limit used in error responses. */
 export const API_BODY_LIMIT_LABEL = '50mb';
 
+function getCorsAllowlist(): string[] {
+    const config = getConfig();
+    if (!config.env.HTTP_MODE) {
+        return config.sillytavern.corsEnabled ? config.sillytavern.corsOrigins : [];
+    }
+
+    return config.main.sys_conf.safe_conf.cors_allow_hostlist;
+}
+
 function resolveAllowedOrigin(origin?: string): string | null {
     if (!origin) {
         return null;
     }
 
-    const allowlist = getConfig().main.sys_conf.safe_conf.cors_allow_hostlist;
-    if (allowlist.includes(origin)) {
+    const allowlist = getCorsAllowlist();
+    if (allowlist.includes('*') || allowlist.includes(origin)) {
         return origin;
     }
 
